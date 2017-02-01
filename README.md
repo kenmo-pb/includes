@@ -1,7 +1,7 @@
-# includes
-Include Files for PureBasic
+# PureBasic Includes
+A variety of useful Include Files for PureBasic projects
 
-*All files are "EnableExplicit safe" and "Multiple-include safe".*
+*All files are "EnableExplicit safe" and "Multiple-include safe"*
 
 ## [JSON.pbi](JSON.pbi)
 Basic JSON support (read/write/parse/modify) before PureBasic added its own JSON library in 5.30
@@ -14,6 +14,7 @@ Basic JSON support (read/write/parse/modify) before PureBasic added its own JSON
 
 ## [Winamp.pbi](Winamp.pbi)
 Gives you basic access and control of Winamp's playback status
+
+**Note**: This is for controlling Winamp from an external program, not for writing Winamp plugin DLLs
 + Windows only
 + ASCII/Unicode safe
-+ **Note**: This is for controlling Winamp from an external program, not for writing Winamp plugin DLLs
