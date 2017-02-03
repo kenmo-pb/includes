@@ -1,6 +1,8 @@
 # PureBasic Includes
 A variety of useful Include Files for PureBasic projects
 
+Most of these come from my own projects, some were written for the PB forums, and some were never used for anything. Feel free to use, modify, and share. No credit required.
+
 *All files are "EnableExplicit safe" and "Multiple-include safe"*
 
 ## [common.pbi](common.pbi)
