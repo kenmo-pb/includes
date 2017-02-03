@@ -3,6 +3,12 @@ A variety of useful Include Files for PureBasic projects
 
 *All files are "EnableExplicit safe" and "Multiple-include safe"*
 
+## [common.pbi](common.pbi)
+Lots of handy constants, macros, and procedures for common tasks related to: data types, time and date, dialogs, gadgets, file I/O, file paths, drawing, images, strings, etc.
++ Windows/Linux/Mac
++ ASCII/Unicode safe
++ **os.pbi is also required**
+
 ## [ImproveGadgets.pbi](ImproveGadgets.pbi)
 Various small improvements to native PB gadgets
 + Windows only (compiles but has no effect on other OS)
@@ -20,6 +26,13 @@ Basic JSON support (read/write/parse/modify) before PureBasic added its own JSON
 + **PB 5.30+**: Compilation is disabled (conflicts with PB's JSON commands)
 + **PB 5.20+**: Compiles as a Module (`UseModule JSON`)
 + **Before 5.20**: Compiles as included procedures
+
+## [os.pbi](os.pbi)
+Low-overhead code (constants and macros, no procedures) to simplify cross-platform programming
+
+Convenient for handling different OS, filesystems, subsystems, ASCII vs. Unicode, x86 vs. x64
++ Windows/Linux/Mac
++ ASCII/Unicode safe
 
 ## [Winamp.pbi](Winamp.pbi)
 Gives you basic access and control of Winamp's playback status
