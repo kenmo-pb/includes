@@ -9,7 +9,7 @@ Most of these come from my own projects, others were written for the PB forums, 
 Lots of handy constants, macros, and procedures for common tasks related to: data types, time and date, dialogs, gadgets, file I/O, file paths, drawing, images, strings, etc.
 + Windows/Linux/Mac
 + ASCII/Unicode safe
-+ **os.pbi is also required**
++ **[os.pbi](os.pbi) is also required**
 
 ## [ImproveGadgets.pbi](ImproveGadgets.pbi)
 Various small improvements to native PB gadgets
