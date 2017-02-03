@@ -2,7 +2,11 @@
 ; | common.pbi |
 ; +------------+
 ; | 2014.01.24 . Creation (PureBasic 5.21 LTS)
+; | 2017.02.02 . Made multiple-include safe
 
+
+CompilerIf (Not Defined(__Common_Included, #PB_Constant))
+#__Common_Included = #True
 
 ;-
 ;- Includes
@@ -1400,5 +1404,5 @@ Procedure LaunchURL(URL.s, NoPrefix.i = #False)
   EndIf
 EndProcedure
 
-
+CompilerEndIf
 ;-

@@ -7,9 +7,11 @@
 ; |        .24 . Removed NotS macro (moved to common.pbi)
 ; |     .07.03 . Cleaned up OS macros, Win/Mac Elses, character constants
 ; | 2016.04.08 . Added OnWindows/OnLinux/OnMac single-statement macros
+; | 2017.02.02 . Made multiple-include safe
 
 
-
+CompilerIf (Not Defined(__OS_Included, #PB_Constant))
+#__OS_Included = #True
 
 ;-
 ;- OS Macros
@@ -279,6 +281,8 @@ CompilerElse
   Macro SameFile(File1, File2)
     Bool(File1 = File2)
   EndMacro
+CompilerEndIf
+
 CompilerEndIf
 
 ;-
