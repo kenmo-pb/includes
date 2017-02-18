@@ -11,6 +11,12 @@ Lots of handy constants, macros, and procedures for common tasks related to: dat
 + ASCII/Unicode safe
 + **[os.pbi](os.pbi) is also required**
 
+## [DropdownButtonGadget.pbi](DropdownButtonGadget.pbi)
+Custom canvas-based button which provides one clickable main action, plus a popup menu for secondary actions. Simulates a widget seen in some Microsoft programs.
++ Windows/Linux/Mac
++ ASCII/Unicode safe
++ Demo included
+
 ## [ImproveGadgets.pbi](ImproveGadgets.pbi)
 Various small improvements to native PB gadgets
 + Windows only (compiles but has no effect on other OS)
