@@ -5,6 +5,13 @@ Most of these come from my own projects, others were written for the PB forums, 
 
 *All files are "EnableExplicit safe" and "Multiple-include safe"*
 
+## [7Zip.pbi](7Zip.pbi)
+This provides an interface to the basic archive functions of 7-Zip - creation, examination, and extraction - with password support.
++ Windows only
++ ASCII/Unicode safe
++ Demo included
++ **[7-Zip commandline version](http://www.7-zip.org/download.html) (7za.exe) is required**
+
 ## [common.pbi](common.pbi)
 Lots of handy constants, macros, and procedures for common tasks related to: data types, time and date, dialogs, gadgets, file I/O, file paths, drawing, images, strings, etc.
 + Windows/Linux/Mac
