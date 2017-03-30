@@ -12,6 +12,12 @@ This provides an interface to the basic archive functions of 7-Zip - creation, e
 + Demo included
 + **[7-Zip commandline version](http://www.7-zip.org/download.html) (7za.exe) is required**
 
+## [Base64Lib.pbi](Base64Lib.pbi)
+A set of encoder/decoder/helper functions to improve upon (or replace) PB's Base64 functions. Various conversions to/from strings, files, and memory buffers.
++ Windows/Linux/Mac
++ ASCII/Unicode safe
++ Demo included
+
 ## [common.pbi](common.pbi)
 Lots of handy constants, macros, and procedures for common tasks related to: data types, time and date, dialogs, gadgets, file I/O, file paths, drawing, images, strings, etc.
 + Windows/Linux/Mac
