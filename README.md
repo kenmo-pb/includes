@@ -55,6 +55,12 @@ Convenient for handling different OS, filesystems, subsystems, ASCII vs. Unicode
 + Windows/Linux/Mac
 + ASCII/Unicode safe
 
+## [PBShortcuts.pbi](PBShortcuts.pbi)
+A very simple file which tells you a `#PB_Shortcut_*` constant's name string from its numeric value, or vice versa. You can also Debug all shortcut values with one Procedure call, or use the demo program to quickly map keypresses to `#PB_Shortcut_*` constants.
++ Windows/Linux/Mac
++ ASCII/Unicode safe
++ Demo included
+
 ## [Winamp.pbi](Winamp.pbi)
 Gives you basic access and control of Winamp's playback status
 
