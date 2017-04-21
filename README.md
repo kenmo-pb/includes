@@ -30,6 +30,12 @@ Custom canvas-based button which provides one clickable main action, plus a popu
 + ASCII/Unicode safe
 + Demo included
 
+## [GadgetCommon.pbi](GadgetCommon.pbi)
+Helper functions for handling the selected items, checked items, and item data of ListIconGadgets, ListViewGadgets, and TreeGadgets.
++ Windows/Linux/Mac
++ ASCII/Unicode safe
++ Demo included
+
 ## [ImproveGadgets.pbi](ImproveGadgets.pbi)
 Various small improvements to native PB gadgets
 + Windows only (compiles but has no effect on other OS)
