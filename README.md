@@ -61,6 +61,13 @@ A very simple file which tells you a `#PB_Shortcut_*` constant's name string fro
 + ASCII/Unicode safe
 + Demo included
 
+## [StringHelper.pbi](StringHelper.pbi)
+A variety of useful procedures, macros, and constants for dealing with different string encodings, ASCII-to-Unicode updates, writing and parsing in memory, text file I/O.  
+Support for ASCII, Unicode (UTF-16), UTF-8, UTF-32
++ Windows/Linux/Mac
++ ASCII/Unicode safe
++ Demo included
+
 ## [Winamp.pbi](Winamp.pbi)
 Gives you basic access and control of Winamp's playback status
 
