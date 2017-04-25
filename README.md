@@ -54,6 +54,12 @@ Basic JSON support (read/write/parse/modify) before PureBasic added its own JSON
 + **PB 5.20+**: Compiles as a Module (`UseModule JSON`)
 + **Before 5.20**: Compiles as included procedures
 
+## [JSON_Helper.pbi](JSON_Helper.pbi)
+Handy procedures, macros, and constants for simplifying JSON code, using PB's JSON library added in 5.30.
++ Windows/Linux/Mac
++ ASCII/Unicode safe
++ Demo included
+
 ## [os.pbi](os.pbi)
 Low-overhead code (constants and macros, no procedures) to simplify cross-platform programming
 
@@ -79,4 +85,9 @@ Gives you basic access and control of Winamp's playback status
 
 **Note**: This is for controlling Winamp from an external program, not for writing Winamp plugin DLLs
 + Windows only
++ ASCII/Unicode safe
+
+## [XML_Helper.pbi](XML_Helper.pbi)
+Handy procedures, macros, and constants for simplifying XML code, using PB's XML library.
++ Windows/Linux/Mac
 + ASCII/Unicode safe
