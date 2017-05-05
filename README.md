@@ -73,6 +73,12 @@ A very simple file which tells you a `#PB_Shortcut_*` constant's name string fro
 + ASCII/Unicode safe
 + Demo included
 
+## [SendKeys_Win.pbi](SendKeys_Win.pbi)
+A small Windows include which provides `PressKey(VK)`, `ReleaseKey(VK)`, and `TapKey(VK, msDelay)` functions for simulating keypresses to the active window. You can select between 3 types of keypress methods at compile time.
++ Windows only
++ ASCII/Unicode safe
++ Demo included
+
 ## [StringHelper.pbi](StringHelper.pbi)
 A variety of useful procedures, macros, and constants for dealing with different string encodings, ASCII-to-Unicode updates, writing and parsing in memory, text file I/O.  
 Support for ASCII, Unicode (UTF-16), UTF-8, UTF-32
