@@ -79,6 +79,12 @@ A very simple file which tells you a `#PB_Shortcut_*` constant's name string fro
 + ASCII/Unicode safe
 + Demo included
 
+## [RatingGadget.pbi](RatingGadget.pbi)
+Custom canvas-based gadget which allows the user to select a rating on a horizontal image bar. The default range is 5 stars (images included in DataSection). The images and range are changeable.
++ Windows/Linux/Mac
++ ASCII/Unicode safe
++ Demo included
+
 ## [SendKeys_Win.pbi](SendKeys_Win.pbi)
 A small Windows include which provides `PressKey(VK)`, `ReleaseKey(VK)`, and `TapKey(VK, msDelay)` functions for simulating keypresses to the active window. You can select between 3 types of keypress methods at compile time.
 + Windows only
