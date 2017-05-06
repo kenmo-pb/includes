@@ -45,6 +45,12 @@ Various small improvements to native PB gadgets
 + **ContainerGadget**: reduces resize flickering by disabling some redraw events
 + **WebGadget**: Disables annoying "Script Error" popups
 
+## [ini.pbi](ini.pbi)
+Functions for reading/writing INI files. A replacement for PB's Preferences library, with added functionality, formatting options for the file and values, and helper functions. The similarities and differences are summarized in the comments near the top of the file.
++ Windows/Linux/Mac
++ ASCII/Unicode safe
++ Demo included
+
 ## [JSON.pbi](JSON.pbi)
 Basic JSON support (read/write/parse/modify) before PureBasic added its own JSON library in 5.30
 + Windows/Linux/Mac
