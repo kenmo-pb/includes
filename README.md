@@ -63,6 +63,12 @@ Functions for reading/writing INI files. A replacement for PB's Preferences libr
 + ASCII/Unicode safe
 + Demo included
 
+## [IntStack.pbi](IntStack.pbi)
+Implements a simple Stack (`Push` + `Pop`, with `Peek`) of a fixed type (PB integer).
++ Windows/Linux/Mac
++ ASCII/Unicode safe
++ Demo included
+
 ## [JSON.pbi](JSON.pbi)
 Basic JSON support (read/write/parse/modify) before PureBasic added its own JSON library in 5.30
 + Windows/Linux/Mac
