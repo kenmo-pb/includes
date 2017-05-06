@@ -36,6 +36,12 @@ Custom canvas-based button which provides one clickable main action, plus a popu
 + ASCII/Unicode safe
 + Demo included
 
+## [EnvironmentPaths.pbi](EnvironmentPaths.pbi)
+This lets you Examine() and step through a list of environment paths. On Windows, this refers to the `PATH` environment variable. On other OS, nothing is implemented yet.
++ Windows only (compiles but has no effect on other OS)
++ ASCII/Unicode safe
++ Demo included
+
 ## [GadgetCommon.pbi](GadgetCommon.pbi)
 Helper functions for handling the selected items, checked items, and item data of ListIconGadgets, ListViewGadgets, and TreeGadgets.
 + Windows/Linux/Mac
