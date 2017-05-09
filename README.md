@@ -24,6 +24,12 @@ Lots of handy constants, macros, and procedures for common tasks related to: dat
 + ASCII/Unicode safe
 + **[os.pbi](os.pbi) is also required**
 
+## [Complex.pbi](Complex.pbi)
+Functions and macros to handle complex numbers (32-bit float precision per each component) and the usual, basic operations on them. Long-name procedures are provided (such as `Complex_Imaginary()`), as well as short-name macros (such as `cImag()`).
++ Windows/Linux/Mac
++ ASCII/Unicode safe
++ Demo included
+
 ## [DesktopHelper.pbi](DesktopHelper.pbi)
 Helper functions for dealing with multiple screens, parent and child windows, window states.
 + Windows/Linux/Mac
