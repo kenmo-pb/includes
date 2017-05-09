@@ -97,6 +97,12 @@ Convenient for handling different OS, filesystems, subsystems, ASCII vs. Unicode
 + Windows/Linux/Mac
 + ASCII/Unicode safe
 
+## [PBP_Projects.pbi](PBP_Projects.pbi)
+Functions for parsing PureBasic's own `.pbp` format project files. You can iterate through a project's targets, read basic information about them, and generate a string of appropriate `pbcompiler` parameters.
++ Windows/Linux/Mac
++ ASCII/Unicode safe
++ Demo included
+
 ## [PBShortcuts.pbi](PBShortcuts.pbi)
 A very simple file which tells you a `#PB_Shortcut_*` constant's name string from its numeric value, or vice versa. You can also Debug all shortcut values with one Procedure call, or use the demo program to quickly map keypresses to `#PB_Shortcut_*` constants.
 + Windows/Linux/Mac
