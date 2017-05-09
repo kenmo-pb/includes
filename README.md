@@ -30,6 +30,13 @@ Functions and macros to handle complex numbers (32-bit float precision per each 
 + ASCII/Unicode safe
 + Demo included
 
+## [CompressHelper.pbi](CompressHelper.pbi)
+Helper functions which greatly simplify the (eight) combinations of compressing/decompressing to/from memory/files. You can use the ZIP, LZMA, and BriefLZ packer plugins (default is ZIP).
++ Windows/Linux/Mac
++ ASCII/Unicode safe
++ Demo included
++ **PB 5.10+** is required
+
 ## [DesktopHelper.pbi](DesktopHelper.pbi)
 Helper functions for dealing with multiple screens, parent and child windows, window states.
 + Windows/Linux/Mac
