@@ -128,6 +128,12 @@ Custom canvas-based gadget which allows the user to select a rating on a horizon
 + ASCII/Unicode safe
 + Demo included
 
+## [RequesterEx.pbi](RequesterEx.pbi)
+Many improvements to the Open/Save/Path Requesters. All parameters are made optional, file extensions are automatically recognized and appended, multiple-file selection is greatly simplified, missing default folders are detected, Mac quirks are corrected.
++ Windows/Linux/Mac
++ ASCII/Unicode safe
++ Demo included
+
 ## [SendKeys_Win.pbi](SendKeys_Win.pbi)
 A small Windows include which provides `PressKey(VK)`, `ReleaseKey(VK)`, and `TapKey(VK, msDelay)` functions for simulating keypresses to the active window. You can select between 3 types of keypress methods at compile time.
 + Windows only
