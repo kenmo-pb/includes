@@ -18,6 +18,12 @@ A set of encoder/decoder/helper functions to improve upon (or replace) PB's Base
 + ASCII/Unicode safe
 + Demo included
 
+## [ColorRequesterEx.pbi](ColorRequesterEx.pbi)
+Basic improvements to the ColorRequester. On all OS, this saves your last picked color between calls, and even between program runs if the `UseFile` flag is specified. On Windows, it also lets you open a "full" size color chooser, and lets you specify and save the 16 "custom color" boxes.
++ Windows/Linux/Mac
++ ASCII/Unicode safe
++ Demo included
+
 ## [common.pbi](common.pbi)
 Lots of handy constants, macros, and procedures for common tasks related to: data types, time and date, dialogs, gadgets, file I/O, file paths, drawing, images, strings, etc.
 + Windows/Linux/Mac
