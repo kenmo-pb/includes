@@ -18,6 +18,11 @@ A set of encoder/decoder/helper functions to improve upon (or replace) PB's Base
 + ASCII/Unicode safe
 + Demo included
 
+## [CocoaHelper.pbi](CocoaHelper.pbi)
+A few helper functions for dealing with Cocoa objects.
++ Mac only (compiles but has no effect on other OS)
++ ASCII/Unicode safe
+
 ## [ColorRequesterEx.pbi](ColorRequesterEx.pbi)
 Basic improvements to the ColorRequester. On all OS, this saves your last picked color between calls, and even between program runs if the `UseFile` flag is specified. On Windows, it also lets you open a "full" size color chooser, and lets you specify and save the 16 "custom color" boxes.
 + Windows/Linux/Mac
@@ -107,6 +112,11 @@ Handy procedures, macros, and constants for simplifying JSON code, using PB's JS
 Low-overhead code (constants and macros, no procedures) to simplify cross-platform programming
 
 Convenient for handling different OS, filesystems, subsystems, ASCII vs. Unicode, x86 vs. x64
++ Windows/Linux/Mac
++ ASCII/Unicode safe
+
+## [OS_Names.pbi](OS_Names.pbi)
+Two functions, to retreive the (string) name of the user's OS and OS version. (Example: "Windows" and "Windows 7")
 + Windows/Linux/Mac
 + ASCII/Unicode safe
 
