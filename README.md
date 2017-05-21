@@ -144,6 +144,12 @@ Many improvements to the Open/Save/Path Requesters. All parameters are made opti
 + ASCII/Unicode safe
 + Demo included
 
+## [ScanFolder.pbi](ScanFolder.pbi)
+This simplifies scanning folder contents to a single function call. Options include: recursive search, include folders, exclude hidden items, filter by extension, RegEx matching, absolute or relative results.
++ Windows/Linux/Mac
++ ASCII/Unicode safe
++ Demo included
+
 ## [SendKeys_Win.pbi](SendKeys_Win.pbi)
 A small Windows include which provides `PressKey(VK)`, `ReleaseKey(VK)`, and `TapKey(VK, msDelay)` functions for simulating keypresses to the active window. You can select between 3 types of keypress methods at compile time.
 + Windows only
