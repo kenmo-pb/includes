@@ -144,6 +144,12 @@ Many improvements to the Open/Save/Path Requesters. All parameters are made opti
 + ASCII/Unicode safe
 + Demo included
 
+## [ScaleImage.pbi](ScaleImage.pbi)
+This simplifies resizing images and image files to a single function call. Options include: stretch, fit, fill, tile, center, border color, alignment, raw/smooth interpolation.
++ Windows/Linux/Mac
++ ASCII/Unicode safe
++ Demo included
+
 ## [ScanFolder.pbi](ScanFolder.pbi)
 This simplifies scanning folder contents to a single function call. Options include: recursive search, include folders, exclude hidden items, filter by extension, RegEx matching, absolute or relative results.
 + Windows/Linux/Mac
