@@ -162,6 +162,14 @@ This simplifies scanning folder contents to a single function call. Options incl
 + ASCII/Unicode safe
 + Demo included
 
+## [ScintillaBoost.pbi](ScintillaBoost.pbi)
+This include is very convenient when working with the `ScintillaGadget`:  
+*Automatically handles string conversion to and from UTF-8*  
+*Provides hundreds of named macros, so you don't need to pass `#SCI_` constants and remember parameter order*  
+*Has extra procedures (names end in `_`) for additional functionality*
++ Windows/Linux/Mac
++ ASCII/Unicode safe
+
 ## [SendKeys_Win.pbi](SendKeys_Win.pbi)
 A small Windows include which provides `PressKey(VK)`, `ReleaseKey(VK)`, and `TapKey(VK, msDelay)` functions for simulating keypresses to the active window. You can select between 3 types of keypress methods at compile time.
 + Windows only
