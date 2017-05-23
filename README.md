@@ -108,6 +108,12 @@ Handy procedures, macros, and constants for simplifying JSON code, using PB's JS
 + ASCII/Unicode safe
 + Demo included
 
+## [ListRequester.pbi](ListRequester.pbi)
+Provides a `Requester`-like dialog window, which presents the user with a list of options as a ListView, ListIcon, or Tree gadget. Customizations include multiple-select, icons, and button placement. This is an older include; it should be rewritten with newer PB features and without the need for a user-managed List!
++ Windows/Linux/Mac
++ ASCII/Unicode safe
++ Demo included
+
 ## [os.pbi](os.pbi)
 Low-overhead code (constants and macros, no procedures) to simplify cross-platform programming
 
