@@ -66,6 +66,12 @@ This lets you Examine() and step through a list of environment paths. On Windows
 + ASCII/Unicode safe
 + Demo included
 
+## [FTPHelper.pbi](FTPHelper.pbi)
+A few functions to assist you in uploading/downloading/changing the directory in an FTP connection, by full path, instead of manually "walking" the server's directory structure.
++ Windows/Linux/Mac
++ ASCII/Unicode safe
++ Demo included
+
 ## [GadgetCommon.pbi](GadgetCommon.pbi)
 Helper functions for handling the selected items, checked items, and item data of ListIconGadgets, ListViewGadgets, and TreeGadgets.
 + Windows/Linux/Mac
