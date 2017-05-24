@@ -78,6 +78,14 @@ Helper functions for handling the selected items, checked items, and item data o
 + ASCII/Unicode safe
 + Demo included
 
+## [Hg.mod.pbi](Hg.mod.pbi)
+This is a Module for interacting with Mercurial (`Hg`) SCM. Functionality includes creating and committing repos, examining changed files, generating a diff, examining the commit log.
++ Windows only (not tested on Linux/Mac)
++ ASCII/Unicode safe
++ Demo included
++ **Mercurial (Hg) must be installed** on you/the user's system
++ **PB 5.20+** is required
+
 ## [ImproveGadgets.pbi](ImproveGadgets.pbi)
 Various small improvements to native PB gadgets
 + Windows only (compiles but has no effect on other OS)
