@@ -152,6 +152,12 @@ A very simple file which tells you a `#PB_Shortcut_*` constant's name string fro
 + ASCII/Unicode safe
 + Demo included
 
+## [PropertyGadget.pbi](PropertyGadget.pbi)
+An implementation of a PropertyGadget, a custom scrollable gadget containing many types of child gadgets, which can be read/written by numeric index or string ID. Named headers divide them into groups, which can be collapsed or expanded.
++ Windows only (not tested on Linux/Mac)
++ ASCII/Unicode safe
++ Demo included
+
 ## [RatingGadget.pbi](RatingGadget.pbi)
 Custom canvas-based gadget which allows the user to select a rating on a horizontal image bar. The default range is 5 stars (images included in DataSection). The images and range are changeable.
 + Windows/Linux/Mac
