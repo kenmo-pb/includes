@@ -1,10 +1,11 @@
-﻿; +-----------------+
+; +-----------------+
 ; | JSON_Helper.pbi |
 ; +-----------------+
 ; | 2015.07.09 . Creation (PureBasic 5.31)
 ; | 2016.03.02 . Added Create, Compose, AddMember/Element, First/Next procs
 ; |        .05 . Added IsJSON<Type>() macros
 ; | 2017.04.24 . Cleanup
+; |     .06.28 . Added JSONFloatFromPath(), JSONDoubleFromPath()
 
 CompilerIf (Not Defined(_JSON_Helper_Included, #PB_Constant))
 #_JSON_Helper_Included = #True
@@ -17,6 +18,10 @@ CompilerEndIf
 
 ;-
 ;- Constants (Public)
+
+; Include Version
+
+#JSON_IncludeVersion = 20170628
 
 ; JSON Value Types
 #JSON_Array   = #PB_JSON_Array
@@ -32,6 +37,7 @@ CompilerEndIf
 
 ; JSON Compose Options
 #JSON_UseTabIndent = -1
+
 
 
 
@@ -173,6 +179,24 @@ Procedure.i JSONIntegerFromPath(*Parent, Path.s)
   Protected *Node = JSONNodeFromPath(*Parent, Path, #JSON_Number)
   If (*Node)
     Result = GetJSONInteger(*Node)
+  EndIf
+  ProcedureReturn (Result)
+EndProcedure
+
+Procedure.f JSONFloatFromPath(*Parent, Path.s)
+  Protected Result.f = 0.0
+  Protected *Node = JSONNodeFromPath(*Parent, Path, #JSON_Number)
+  If (*Node)
+    Result = GetJSONFloat(*Node)
+  EndIf
+  ProcedureReturn (Result)
+EndProcedure
+
+Procedure.d JSONDoubleFromPath(*Parent, Path.s)
+  Protected Result.d = 0.0
+  Protected *Node = JSONNodeFromPath(*Parent, Path, #JSON_Number)
+  If (*Node)
+    Result = GetJSONDouble(*Node)
   EndIf
   ProcedureReturn (Result)
 EndProcedure
