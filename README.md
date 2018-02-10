@@ -112,7 +112,7 @@ Basic JSON support (read/write/parse/modify) before PureBasic added its own JSON
 + Windows/Linux/Mac
 + ASCII/Unicode safe
 + Demo included
-+ **PB 5.30+**: Compilation is disabled (conflicts with PB's JSON commands)
++ **PB 5.30+**: Use [OJSON.pbi](OJSON.pbi) instead
 + **PB 5.20+**: Compiles as a Module (`UseModule JSON`)
 + **Before 5.20**: Compiles as included procedures
 
@@ -124,6 +124,12 @@ Handy procedures, macros, and constants for simplifying JSON code, using PB's JS
 
 ## [ListRequester.pbi](ListRequester.pbi)
 Provides a `Requester`-like dialog window, which presents the user with a list of options as a ListView, ListIcon, or Tree gadget. Customizations include multiple-select, icons, and button placement. This is an older include; it should be rewritten with newer PB features and without the need for a user-managed List!
++ Windows/Linux/Mac
++ ASCII/Unicode safe
++ Demo included
+
+## [OJSON.pbi](OJSON.pbi)
+A variation of JSON.pbi, renamed to OJSON ("Ordered JSON") to avoid conflicts with PB 5.30+. Preserves the order of a JSON Object's members, unlike PB's JSON library. Not a Module.
 + Windows/Linux/Mac
 + ASCII/Unicode safe
 + Demo included
