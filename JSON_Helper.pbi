@@ -6,6 +6,10 @@
 ; |        .05 . Added IsJSON<Type>() macros
 ; | 2017.04.24 . Cleanup
 ; |     .06.28 . Added JSONFloatFromPath(), JSONDoubleFromPath()
+; |     .08.24 . Added ParseJSONEx(), NormalizeJSON()
+; | 2018.02.10 . Remove 3-byte BOM, #| $JSON |# tags, in NormalizeJSON()
+; |        .20 . Allow '-' in a member name
+; |     .02.22 . FromPath() now strictly uses '/' separator (for '.' in names)
 
 CompilerIf (Not Defined(_JSON_Helper_Included, #PB_Constant))
 #_JSON_Helper_Included = #True
@@ -21,7 +25,7 @@ CompilerEndIf
 
 ; Include Version
 
-#JSON_IncludeVersion = 20170628
+#JSON_IncludeVersion = 20180222
 
 ; JSON Value Types
 #JSON_Array   = #PB_JSON_Array
@@ -109,7 +113,7 @@ Procedure.i JSONNodeFromPath(*Parent, Path.s, Type.i = #PB_Any)
     Protected *C.CHARACTER = *Start
     While (#True)
       Select (*C\c)
-        Case 'a' To 'z', 'A' To 'Z', '0' To '9', '_'
+        Case 'a' To 'z', 'A' To 'Z', '0' To '9', '_', '-', '.', '+', '=', ':'
           ; OK
         Default
           If (*C > *Start)
@@ -137,7 +141,7 @@ Procedure.i JSONNodeFromPath(*Parent, Path.s, Type.i = #PB_Any)
                   *Node = GetJSONElement(*Node, i)
                   *Start = *C + SizeOf(CHARACTER)
                   Select (*Start\c)
-                    Case '.', '/', '\', '[', #NUL
+                    Case '/', '[', #NUL
                       ; OK
                     Default
                       *Node = #Null
@@ -338,6 +342,137 @@ Procedure.s ComposeJSONEx(JSON, IndentSpaces.i, NewLine.s = "")
   Next i
   ProcedureReturn (Result)
 EndProcedure
+
+;-
+;- Parse Nonstandard JSON
+
+Procedure.s NormalizeJSON(Input.s)
+  Protected Result.s
+  
+  ; Format newlines
+  Input = ReplaceString(Input, #CRLF$, #LF$)
+  Input = ReplaceString(Input, #CR$,   #LF$)
+  Input = Trim(Input, #LF$)
+  
+  ; Remove Unicode/UTF-8 BOM prefix
+  If ((Asc(Input) = $FEFF) Or (Asc(Input) = $FFFE))
+    Input = Mid(Input, 2)
+  EndIf
+  If (Left(Input, 3) = Chr($EF) + Chr($BB) + Chr($BF))
+    Input = Mid(Input, 4)
+  EndIf
+  
+  ; Correct bools/nulls
+  Input = ReplaceString(Input, ": False", ": false")
+  Input = ReplaceString(Input, ": True",  ": true")
+  Input = ReplaceString(Input, ": Null",  ": null")
+  Input = ReplaceString(Input, ": None",  ": null")
+  
+  ; Remove b'..' or b".." adfixes (Python)
+  If ((Left(Input, 2) = "b'") And (Right(Input, 1) = "'"))
+    Input = Mid(Left(Input, Len(Input)-1), 3)
+  ElseIf ((Left(Input, 2) = "b" + #DQUOTE$) And (Right(Input, 1) = #DQUOTE$))
+    Input = Mid(Left(Input, Len(Input)-1), 3)
+  EndIf
+  
+  ; Remove #| $JSON |# adfixes
+  Input = Trim(Input, "#")
+  Input = Trim(Input, "|")
+  Input = Trim(Input, #LF$)
+  If (Left(Input, 5) = "$JSON")
+    Input = Trim(Mid(Input, 6))
+  EndIf
+  
+  Protected UBytes.i = 1*1024
+  Protected *UBuff = AllocateMemory(UBytes + 1)
+  Protected *UWrite.ASCII = *UBuff
+  Protected UPrev.i, UThis.i
+  Protected UTerm.s, UIns.i
+  
+  Protected *C.CHARACTER = @Input
+  Protected *LastComma.CHARACTER
+  Protected InStr.i, StrChar.c
+  While (*C\c)
+    UPrev = UThis
+    UThis = #False
+    If (InStr)
+      If (*C\c = StrChar)
+        InStr = #False
+        Result + #DQUOTE$
+      Else
+        Select (*C\c)
+          Case $22
+            Result + "\" + #DQUOTE$
+          Case $27
+            Result + "'"
+          Case '\'
+            *C + SizeOf(CHARACTER)
+            If (*C\c = $27)
+              Result + "'"
+            ElseIf (*C\c = 'x') ; Parse UTF-8 bytes escaped as \x
+              UTerm = PeekS(*C + SizeOf(CHARACTER), 2)
+              If (*UBuff And (Len(UTerm) = 2) And ((*UWrite - *UBuff) < UBytes))
+                If (*UWrite = *UBuff)
+                  UIns = Len(Result) + 1
+                EndIf
+                *UWrite\a = Val("$" + UTerm)
+                *UWrite + SizeOf(ASCII)
+                UThis = #True
+                *C + 2 * SizeOf(CHARACTER)
+              Else
+                Result + "_x"
+              EndIf
+            Else
+              Result + "\" + Chr(*C\c)
+            EndIf
+          Default
+            Result + Chr(*C\c)
+        EndSelect
+      EndIf
+    Else
+      Select (*C\c)
+        Case $22, $27
+          InStr = #True
+          StrChar = *C\c
+          Result + #DQUOTE$ ; Always double-quote strings
+        Default
+          Result + Chr(*C\c)
+      EndSelect
+      Select (*C\c)
+        Case ','
+          *LastComma = @Result + SizeOf(CHARACTER) * (Len(Result) - 1)
+        Case ' ', #TAB, #CR, #LF
+          ;
+        Case '}', ']'
+          ; Remove trailing commas
+          If (*LastComma)
+            *LastComma\c = ' '
+            *LastComma = #Null
+          EndIf
+        Default
+          *LastComma = #Null
+      EndSelect
+    EndIf
+    If (((Not UThis) And UPrev) Or (UThis And (*UWrite - *UBuff = UBytes)))
+      *UWrite\a = #NUL
+      Result = InsertString(Result, PeekS(*UBuff, -1, #PB_UTF8), UIns)
+      *UWrite = *UBuff
+    EndIf
+    *C + SizeOf(CHARACTER)
+  Wend
+  
+  If (*UBuff)
+    FreeMemory(*UBuff)
+  EndIf
+  
+  ProcedureReturn (Result)
+EndProcedure
+
+Procedure.i ParseJSONEx(JSON.i, Input.s, Flags.i = #Null)
+  ProcedureReturn (ParseJSON(JSON, NormalizeJSON(Input), Flags))
+EndProcedure
+
+
 
 ;-
 ;- - Add Members to Object
