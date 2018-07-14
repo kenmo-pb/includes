@@ -1,4 +1,4 @@
-﻿; +-------------+
+; +-------------+
 ; | RequesterEx |
 ; +-------------+
 ; | 2015.05.09 . Creation (PureBasic 5.31)
@@ -13,6 +13,7 @@
 ; |                saved last folder between Open/Save RequesterEx calls,
 ; |                fixed duplicate extension bug such as (*.txt)(*.txt),
 ; |                replaced "Guess" params with a Pattern of -1
+; | 2017.08.11 . Trim trailing periods on Windows save filenames
 
 ;-
 CompilerIf (Not Defined(__RequesterEx_Included, #PB_Constant))
@@ -209,6 +210,10 @@ Procedure.s SaveFileRequesterEx(Title.s = "Save", DefaultFile.s = "", Pattern.s 
       __RequesterEx_SelectedPattern = PatternPosition
     CompilerElse
       __RequesterEx_SelectedPattern = SelectedFilePattern()
+    CompilerEndIf
+    
+    CompilerIf (#PB_Compiler_OS = #PB_OS_Windows)
+      Result = RTrim(Result, ".")
     CompilerEndIf
     
     Protected Extension.s = LCase(GetExtensionPart(Result))
