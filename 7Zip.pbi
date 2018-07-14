@@ -1,9 +1,10 @@
-﻿; +--------------+
+; +--------------+
 ; | 7-Zip Helper |
 ; +--------------+
 ; | 2015.10.13 . Added Add7ZipFile and password/flags
 ; | 2017.01.06 . Added Examine Files/Folders, Extract File
 ; |     .03.16 . Made file multiple-include safe, rewrote demo
+; |     .04.06 . Delete temporary unzip folder
 
 ;-
 CompilerIf (Not Defined(__7Zip_Included, #PB_Constant))
@@ -191,9 +192,9 @@ Procedure.i Extract7ZipFile(Archive.s, File.s, Destination.s = "")
         Protected TempFile.s = TempDir + GetFilePart(File)
         DeleteFile(TempFile)
         Protected Param.s = "e"
-        Param + " " + #DQUOTE$ + Archive + #DQUOTE$
+        Param + " "   + #DQUOTE$ + Archive + #DQUOTE$
         Param + " -o" + #DQUOTE$ + TempDir + #DQUOTE$
-        Param + " " + #DQUOTE$ + File    + #DQUOTE$
+        Param + " "   + #DQUOTE$ + File    + #DQUOTE$
         Param + " -y"
         If (\Password)
           Param + " -p" + \Password
@@ -212,6 +213,7 @@ Procedure.i Extract7ZipFile(Archive.s, File.s, Destination.s = "")
             EndIf
           EndIf
         EndIf
+        DeleteDirectory(TempDir, "")
       EndIf
     EndIf
   EndWith
