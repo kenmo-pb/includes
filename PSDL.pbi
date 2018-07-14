@@ -1074,7 +1074,3 @@ CompilerEndIf
 
 CompilerEndIf ; PSDL
 ;-
-; IDE Options = PureBasic 5.61 (Windows - x86)
-; EnableXP
-; EnableUser
-; EnableUnicode
