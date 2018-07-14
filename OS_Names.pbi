@@ -1,4 +1,4 @@
-﻿; +----------+
+; +----------+
 ; | OS_Names |
 ; +----------+
 ; | 2014.12.02 . Creation (PureBasic 5.31)
@@ -6,6 +6,7 @@
 ; | 2015.07.16 . Added (incomplete) list of OS X nickname constants
 ; |        .28 . Added OS X 10.11 (El Capitan)
 ; | 2017.05.18 . Multiple-include safe
+; | 2018.02.22 . Placeholders for OS X 10.12, 10.13
 
 ;-
 CompilerIf (Not Defined(__OS_Names_Included, #PB_Constant))
@@ -154,6 +155,14 @@ DataSection
     CompilerIf (Defined(PB_OS_MacOSX_10_11, #PB_Constant))
       Data.i #PB_OS_MacOSX_10_11
       Data.i @"OS X 10.11"
+    CompilerEndIf
+    CompilerIf (Defined(PB_OS_MacOSX_10_12, #PB_Constant))
+      Data.i #PB_OS_MacOSX_10_12
+      Data.i @"OS X 10.12"
+    CompilerEndIf
+    CompilerIf (Defined(PB_OS_MacOSX_10_13, #PB_Constant))
+      Data.i #PB_OS_MacOSX_10_13
+      Data.i @"OS X 10.13"
     CompilerEndIf
   CompilerEndIf
   
