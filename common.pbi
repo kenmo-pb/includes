@@ -1,4 +1,4 @@
-﻿; +------------+
+; +------------+
 ; | common.pbi |
 ; +------------+
 ; | 2014.01.24 . Creation (PureBasic 5.21 LTS)
@@ -35,6 +35,15 @@ XIncludeFile #PB_Compiler_FilePath + "os.pbi"
 #PB_Up      = #PB_Round_Up
 #PB_Down    = #PB_Round_Down
 #PB_Nearest = #PB_Round_Nearest
+
+#PB_BMP      = #PB_ImagePlugin_BMP
+#PB_PNG      = #PB_ImagePlugin_PNG
+#PB_JPEG     = #PB_ImagePlugin_JPEG
+#PB_JPEG2000 = #PB_ImagePlugin_JPEG2000
+
+; 2017-08-29
+#ImproveUserAgent = "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36"
+;#ImproveUserAgent = "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:54.0) Gecko/20100101 Firefox/54.0"
 
 CompilerIf (Defined(SW_Title, #PB_Constant))
   #__Title_Info    = #SW_Title
@@ -176,12 +185,28 @@ Procedure.s _IifS(Boolean.i, StringIfTrue.s, StringIfFalse.s = "")
   EndIf
 EndProcedure
 
-Macro IifS(Condition, StringIfTrue, StringIfFalse)
+Macro IifS(Condition, StringIfTrue, StringIfFalse = "")
   _IifS(Bool(Condition), (StringIfTrue), (StringIfFalse))
+EndMacro
+
+Macro CopyText(Text)
+  SetClipboardText(Text)
 EndMacro
 
 Macro Quote(String)
   #DQ$ + String + #DQ$
+EndMacro
+
+Macro SQuote(String)
+  #SQ$ + String + #SQ$
+EndMacro
+
+Macro SDQuote(String)
+  ReplaceString(String, "'", #DQ$)
+EndMacro
+
+Macro LastField(_String, _Delim)
+  StringField(_String, 1 + CountString(_String, _Delim), _Delim)
 EndMacro
 
 Macro Push(PBList)
@@ -192,12 +217,31 @@ Macro Pop(PBList)
   PopListPosition(PBList)
 EndMacro
 
+Macro SelectRandomElement(PBList)
+  SelectElement(PBList, Random(ListSize(PBList)-1))
+EndMacro
+
+Macro AddString(_List, _String)
+  AddElement(_List) : _List = _String
+EndMacro
+
 Macro AllocateMemoryFast(Size)
   AllocateMemory(Size, #PB_Memory_NoClear)
 EndMacro
 
 ;-
 ;- Macros - Time
+
+
+CompilerIf (Not Defined(time, #PB_Procedure))
+  ImportC ""
+    time(*seconds.INTEGER = #Null)
+  EndImport
+CompilerEndIf
+
+Macro DateUTC()
+  time()
+EndMacro
 
 Macro Now()
   Date()
@@ -257,6 +301,10 @@ EndMacro
 
 Macro Confirm(Message, Flags = #OS_YesNoCancel)
   MessageRequester(#__Title_Confirm, Message, (Flags) | #OS_Icon_Question)
+EndMacro
+
+Macro PasswordRequester(Title, Message, DefaultString = "", Flags = #Null)
+  InputRequester(Title, Message, DefaultString, (Flags)|#PB_InputRequester_Password)
 EndMacro
 
 ;-
@@ -389,6 +437,14 @@ Macro OpenBasicWindow(Window, Flags = #Null)
   OpenWindow((Window), 0, 0, 480, 360, GetFilePart(ProgramFilename()), #PBWF_Centered|#PBWF_Minimizable|(Flags))
 EndMacro
 
+Macro OpenTitleWindow(Window, Title = "", Flags = #Null)
+  OpenWindow((Window), 0, 0, 320, 60, Title, #PBWF_Centered|#PBWF_Minimizable|(Flags))
+EndMacro
+
+Macro WaitCloseWindow()
+  Repeat : Until (WaitWindowEvent() = #PB_Event_CloseWindow)
+EndMacro
+
 
 ;-
 ;- Macros - File I/O
@@ -447,6 +503,20 @@ Macro SetParentDirectory()
   SetCurrentDirectory(#PB_Path_Parent)
 EndMacro
 
+Macro GetLExtensionPart(_Path)
+  LCase(GetExtensionPart(_Path))
+EndMacro
+
+Macro RemoveExtension(_File)
+  SetExtension(_File, "")
+EndMacro
+
+CompilerIf (PBGTE(560))
+Macro GetDesktopDirectory()
+  GetUserDirectory(#PB_Directory_Desktop)
+EndMacro
+CompilerEndIf
+
 Macro GetProgramPath()
   GetPathPart(ProgramFilename())
 EndMacro
@@ -457,6 +527,18 @@ EndMacro
 
 Macro GetModifiedDate(File)
   GetFileDate((File), #PB_Date_Modified)
+EndMacro
+
+Macro DisableDriveErrors()
+  OnWindows(SetErrorMode_(#SEM_FAILCRITICALERRORS))
+EndMacro
+
+Macro Download(URL, File, UserAgent = #ImproveUserAgent)
+  ReceiveHTTPFile((URL), (File), 0, (UserAgent))
+EndMacro
+
+Macro DeleteFileForce(FileName)
+  DeleteFile((FileName), #PB_FileSystem_Force)
 EndMacro
 
 
@@ -505,6 +587,10 @@ Macro ClearImageRGBA(Image, Color = #OpaqueWhite)
   EndIf
 EndMacro
 
+Macro Opaque(RGB)
+  ((RGB) | $FF000000)
+EndMacro
+
 
 ;-
 ;- Macros - Images
@@ -519,8 +605,26 @@ Macro SaveJPEG(_Image, _FileName, _Quality = 7)
   SaveImage((_Image), (_FileName), #PB_ImagePlugin_JPEG, (_Quality))
 EndMacro
 
+Macro UsePNGCodecs()
+  UsePNGImageDecoder()
+  UsePNGImageEncoder()
+EndMacro
+Macro UseJPEGCodecs()
+  UseJPEGImageDecoder()
+  UseJPEGImageEncoder()
+EndMacro
+
 ;-
 ;- Macros - Cipher
+
+CompilerIf (#PB_Compiler_Version < 560)
+  Macro Base64EncoderBuffer(_Input, _InputSize, _Output, _OutputSize, _Flags = 0)
+    Base64Encoder((_Input), (_InputSize), (_Output), (_OutputSize), (_Flags))
+  EndMacro
+  Macro Base64DecoderBuffer(_Input, _InputSize, _Output, _OutputSize)
+    Base64Decoder((_Input), (_InputSize), (_Output), (_OutputSize))
+  EndMacro
+CompilerEndIf
 
 CompilerIf (#PB_Compiler_Version >= 540)
   Macro CRC32Fingerprint(Buffer, Size)
@@ -592,6 +696,15 @@ Procedure.i NextElementPtr(*Element)
   EndIf
 EndProcedure
 
+Procedure.i PercentChance(Percent.i)
+  ;If (Percent >= 100)
+  ;  ProcedureReturn (#True)
+  ;ElseIf (Percent <= 0)
+  ;  ProcedureReturn (#False)
+  ;EndIf
+  ProcedureReturn (Bool(Random(99) < (Percent)))
+EndProcedure
+
 ;-
 ;- Procedures - Dialogs
 
@@ -607,8 +720,82 @@ Procedure.i CopyMessage(Message.s, Icon.i = #Null)
   ProcedureReturn (Result)
 EndProcedure
 
+Procedure DisplayText(Text.s, ParentWin.i = #PB_Ignore)
+  Protected ParentID.i
+  Protected Flags.i = #PB_Window_SystemMenu
+  If (ParentWin <> #PB_Ignore)
+    Flags | #PB_Window_WindowCentered
+    ParentID = WindowID(ParentWin)
+  Else
+    Flags | #PB_Window_ScreenCentered
+  EndIf
+  Protected Win.i = OpenWindow(#PB_Any, 0, 0, 320, 240,
+      GetFilePart(ProgramFilename()), Flags, ParentID)
+  If (Win)
+    If (ParentWin <> #PB_Ignore)
+      DisableWindow(ParentWin, #True)
+    EndIf
+    Protected Editor.i = EditorGadget(#PB_Any, 0, 0,
+        WindowWidth(Win), WindowHeight(Win), #PB_Editor_ReadOnly)
+    If (Editor)
+      SetGadgetText(Editor, Text)
+      SetActiveGadget(Editor)
+      Repeat
+        Protected Event.i = WaitWindowEvent()
+      Until (Event = #PB_Event_CloseWindow)
+      FreeGadget(Editor)
+    EndIf
+    CloseWindow(Win)
+    If (ParentWin <> #PB_Ignore)
+      DisableWindow(ParentWin, #False)
+    EndIf
+  EndIf
+EndProcedure
+
+;-
+;- Procedures - Time
+
+Procedure.i LocalToUTC(LocalDate.i)
+  ProcedureReturn (LocalDate + (DateUTC() - Date()))
+EndProcedure
+
+Procedure.s RFCDate(Date.i, IsLocal.i = #False)
+  Protected Result.s
+  Result = Mid("SunMonTueWedThuFriSat", 1 + DayOfWeek(Date)*3, 3) + ", "
+  Result + RSet(Str(Day(Date)), 2, "0") + " "
+  Result + Mid("JanFebMarAprMayJunJulAugSepOctNovDec", 1 + (Month(Date)-1)*3, 3) + " "
+  Result + RSet(Str(Year(Date)), 4, "0") + " "
+  Result + RSet(Str(Hour(Date)), 2, "0") + ":"
+  Result + RSet(Str(Minute(Date)), 2, "0") + ":"
+  Result + RSet(Str(Second(Date)), 2, "0") + " "
+  If (IsLocal)
+    Protected Diff.i = (Date() - DateUTC())
+    If (Diff >= 0)
+      Result + "+"
+    Else
+      Diff = -Diff
+      Result + "-"
+    EndIf
+    Result + RSet(Str(Diff / 3600), 2, "0") + RSet(Str((Diff % 3600) / 60), 2, "0")
+  Else
+    Result + "+0000"
+  EndIf
+  ProcedureReturn (Result)
+EndProcedure
+
+
 ;-
 ;- Procedures - Strings
+
+Procedure.s ReplaceVariations(String.s, StringToFind.s, StringToReplace.s)
+  String = ReplaceString(String, StringToFind, StringToReplace)
+  String = ReplaceString(String, UCase(StringToFind), UCase(StringToReplace))
+  String = ReplaceString(String, LCase(StringToFind), LCase(StringToReplace))
+  If (#True)
+    String = ReplaceString(String, StringToFind, StringToReplace, #PB_String_NoCase)
+  EndIf
+  ProcedureReturn (String)
+EndProcedure
 
 Procedure.s QuoteIfSpaces(Input.s, DontQuoteEmpty.i = #False)
   If (FindString(Input, " "))
@@ -667,6 +854,20 @@ Procedure.s Plural(Count.i, Singular.s, Plural.s = "")
     EndIf
     ProcedureReturn (Str(Count) + " " + Plural)
   EndIf
+EndProcedure
+
+Procedure.s Strings(Text.s, Param1.s = "", Param2.s = "", Param3.s = "")
+  Text = ReplaceString(Text, "$1", Param1)
+  Text = ReplaceString(Text, "$2", Param2)
+  Text = ReplaceString(Text, "$3", Param3)
+  ProcedureReturn (Text)
+EndProcedure
+
+Procedure.s Integers(Text.s, Param1.i = 0, Param2.i = 0, Param3.i = 0)
+  Text = ReplaceString(Text, "$1", Str(Param1))
+  Text = ReplaceString(Text, "$2", Str(Param2))
+  Text = ReplaceString(Text, "$3", Str(Param3))
+  ProcedureReturn (Text)
 EndProcedure
 
 Procedure.s ByteString(Bytes.q, NumDecimals.i = 1)
@@ -754,12 +955,7 @@ Procedure.s ProgramParameterString()
   Protected i.i
   Protected Param.s
   For i = 0 To n - 1
-    Param = ProgramParameter(i)
-    If (FindString(Param, " ") Or (Param = ""))
-      Result + " " + Quote(Param)
-    Else
-      Result + " " + Param
-    EndIf
+    Result + " " + QuoteIfSpaces(ProgramParameter(i))
   Next i
   
   ProcedureReturn (Mid(Result, 2))
@@ -826,6 +1022,20 @@ Procedure.i FindLastOccurrence(String.s, StringToFind.s, StartPosition.i = 1, Mo
     Until (Not i)
   EndIf
   ProcedureReturn (Result)
+EndProcedure
+
+Procedure.s GetDotExtensionPart(Path.s)
+  Protected Result.s = GetExtensionPart(Path)
+  If (Result)
+    Result = "." + Result
+  EndIf
+  ProcedureReturn (Result)
+EndProcedure
+
+Procedure.s AppendFilename(Path.s, Suffix.s)
+  If (Path)
+    ProcedureReturn (GetPathPart(Path) + GetFilePart(Path, #PB_FileSystem_NoExtension) + Suffix + GetDotExtensionPart(Path))
+  EndIf
 EndProcedure
 
 
@@ -919,32 +1129,35 @@ Procedure.s EnsureAbsoluteFolder(Folder.s, Current.s = "")
   ProcedureReturn (EnsurePathSeparator(EnsureAbsolutePath(Folder, Current)))
 EndProcedure
 
+Procedure.s SetExtension(File.s, Extension.s)
+  If (File)
+    File = GetPathPart(File) + GetFilePart(File, #PB_FileSystem_NoExtension)
+    If (Extension)
+      File + "." + Extension
+    EndIf
+  EndIf
+  ProcedureReturn (File)
+EndProcedure
+
+Procedure.s EnsureSafeFilename(Filename.s)
+  Protected *C.CHARACTER = @Filename
+  While (*C\c)
+    CompilerIf (#Windows)
+      Select (*C\c)
+        Case '<', '>', ':', '"', '/', '\', '|', '?', '*', 1 To 31
+          *C\c = '_'
+      EndSelect
+    CompilerEndIf
+    *C + #CharSize
+  Wend
+  ProcedureReturn (Filename)
+EndProcedure
+
+
 
 
 ;-
 ;- Procedures - Filesystem
-
-Procedure.i CanWriteTo(Path.s)
-  Protected Result.i = #False
-  
-  Path = EnsurePathSeparator(Path)
-  Protected FN.i
-  Protected i.i = 0
-  Protected File.s = Path + Str(i)
-  While (FileExists(File))
-    i + 1
-    File = Path + Str(i)
-  Wend
-  
-  FN = CreateFile(#PB_Any, File)
-  If (FN)
-    CloseFile(FN)
-    DeleteFile(File)
-    Result = #True
-  EndIf
-  
-  ProcedureReturn (Result)
-EndProcedure
 
 Procedure.i IsDirectoryEmpty(Directory.s)
   Protected Result.i = -1
@@ -1024,12 +1237,46 @@ Procedure.s TemporaryPathName(Prefix.s = "")
   ProcedureReturn (UniquePathName(GetTemporaryDirectory(), Prefix))
 EndProcedure
 
+Procedure.i AppendFile(File.s, Text.s)
+  Protected Result.i = #False
+  Protected FN.i = OpenFile(#PB_Any, File)
+  If (FN)
+    If (Lof(FN) > 0)
+      FileSeek(FN, Lof(FN)-1)
+      Select (ReadAscii(FN))
+        Case #CR, #LF
+          ;
+        Default
+          WriteString(FN, #LF$)
+      EndSelect
+    Else
+      FileSeek(FN, Lof(FN))
+    EndIf
+    WriteStringLF(FN, Text)
+    Result = #True
+    CloseFile(FN)
+  EndIf
+  ProcedureReturn (Result)
+EndProcedure
+
 Procedure.i CreateEmptyFile(FileName.s)
   Protected FN.i = CreateFile(#PB_Any, FileName)
   If (FN)
     CloseFile(FN)
   EndIf
   ProcedureReturn (Bool(FN))
+EndProcedure
+
+Procedure.i CanWriteTo(Path.s)
+  Protected Result.i = #False
+  
+  Protected File.s = UniqueFileName(Path)
+  If (CreateEmptyFile(File))
+    Result = #True
+    DeleteFile(File)
+  EndIf
+  
+  ProcedureReturn (Result)
 EndProcedure
 
 Procedure.i CreateFileFromData(FileName.s, *MemoryBuffer, LengthToWrite.i)
@@ -1168,8 +1415,114 @@ Procedure ShowInExplorer(Path.s)
   EndIf
 EndProcedure
 
+Procedure.i FindInListFile(File.s, Query.s)
+  Protected Result.i = #False
+  If (File And Query)
+    Protected FID.i = ReadFile(#PB_Any, File)
+    If (FID)
+      Protected Raw.s = ReadString(FID, #PB_UTF8 | #PB_File_IgnoreEOL)
+      CloseFile(FID)
+      If (Raw)
+        Raw = ReplaceString(Raw, #CRLF$, #LF$)
+        Raw = ReplaceString(Raw, #CR$,   #LF$)
+        If (#True)
+          Raw   = LCase(Raw)
+          Query = LCase(Query)
+        EndIf
+        Raw = #LF$ + Raw + #LF$
+        Query = ReplaceString(Query, #CR$, "<CR>")
+        Query = ReplaceString(Query, #LF$, "<LF>")
+        Query = #LF$ + Query + #LF$
+        Result = Bool(FindString(Raw, Query, 1))
+      EndIf
+    EndIf
+  EndIf
+  ProcedureReturn (Result)
+EndProcedure
+
+Procedure.i AddToListFile(File.s, Query.s)
+  Protected Result.i = #False
+  If (File And Query)
+    Protected FID.i = ReadFile(#PB_Any, File)
+    If (FID)
+      Protected Raw.s = ReadString(FID, #PB_UTF8 | #PB_File_IgnoreEOL)
+      Raw = ReplaceString(Raw, #CRLF$, #LF$)
+      Raw = ReplaceString(Raw, #CR$,   #LF$)
+      CloseFile(FID)
+    EndIf
+    FID = CreateFile(#PB_Any, File)
+    If (FID)
+      Query = ReplaceString(Query, #CR$, "<CR>")
+      Query = ReplaceString(Query, #LF$, "<LF>")
+      WriteString(FID, Query + #LF$ + LTrim(Raw, #LF$))
+      CloseFile(FID)
+      Result = #True
+    EndIf
+  EndIf
+  ProcedureReturn (Result)
+EndProcedure
+
+
+
+
 ;-
 ;- Procecures - Process
+
+Procedure.i FindProgramParameter(Name.s, After.i = 0)
+  Protected Result.i = -1
+  Protected nParams.i = CountProgramParameters()
+  If (nParams >= 1)
+    If (Name)
+      ReplaceString(Name, "|",  " ", #PB_String_InPlace)
+      ReplaceString(Name, ";",  " ", #PB_String_InPlace)
+      ReplaceString(Name, ",",  " ", #PB_String_InPlace)
+      ReplaceString(Name, "/",  " ", #PB_String_InPlace)
+      ReplaceString(Name, #LF$, " ", #PB_String_InPlace)
+      Protected nNames.i = 1 + CountString(Name, " ")
+      Protected i.i
+      
+      For i = 1 To nNames
+        Protected TryName.s = StringField(Name, i, " ")
+        TryName = LTrim(TryName, "-")
+        TryName = LTrim(TryName, "/")
+        TryName = LCase(TryName)
+        If (TryName)
+          Protected j.i
+          
+          For j = 0 To nParams - 1 - After
+            Protected TryParam.s = ProgramParameter(j)
+            TryParam = LCase(TryParam)
+            If ((TryParam = "-" + TryName) Or (TryParam = "--" + TryName) Or
+                (TryParam = "/" + TryName))
+                ;(TryParam = "/" + TryName) Or (TryParam = TryName))
+              ;Result = j + 1 + After
+              Result = j + After
+              Break 2
+            EndIf
+          Next j
+          
+        EndIf
+      Next i
+      
+    EndIf
+  EndIf
+  ProcedureReturn (Result)
+EndProcedure
+
+Procedure.s GetProgramParameter(Name.s, After.i = 1, Def.s = "")
+  If (After <= 0)
+    After = 1
+  EndIf
+  Protected i.i = FindProgramParameter(Name, After)
+  If (i >= 0)
+    ProcedureReturn (ProgramParameter(i))
+  EndIf
+  ProcedureReturn (Def)
+EndProcedure
+
+Macro HasProgramParameter(Name)
+  Bool(FindProgramParameter(Name) >= 0)
+EndMacro
 
 CompilerIf (#PB_Compiler_Thread)
 
@@ -1210,9 +1563,9 @@ Procedure.i OpenProgram(ProgramName.s, Parameter.s = "", WorkingDirectory.s = ""
   ProcedureReturn (RunProgram(ProgramName, Parameter, WorkingDirectory, Flags, SenderProgram))
 EndProcedure
 
-Procedure.s RunProgramOutput(ProgramName.s, Parameter.s = "", WorkingDirectory.s = "")
+Procedure.s RunProgramOutput(ProgramName.s, Parameter.s = "", WorkingDirectory.s = "", Flags.i = #Null)
   Protected Result.s
-  Protected PID.i = OpenProgram(ProgramName, Parameter, WorkingDirectory, #PB_Program_Hide)
+  Protected PID.i = OpenProgram(ProgramName, Parameter, WorkingDirectory, #PB_Program_Hide | Flags)
   If (PID)
     While (ProgramRunning(PID))
       If (AvailableProgramOutput(PID))
@@ -1275,6 +1628,17 @@ Procedure.i SwapRGB(Color.i)
   ProcedureReturn (RGBA(Blue(Color), Green(Color), Red(Color), Alpha(Color)))
 EndProcedure
 
+Procedure.i AverageRGB(Color.i)
+  ProcedureReturn ((Red(Color) + Green(Color) + Blue(Color)) / 3)
+EndProcedure
+
+Procedure.i BlendRGB(Color0.i, Color1.i, Mix.f)
+  Protected r.i =   Red(Color0) + Mix * (  Red(Color1) -   Red(Color0))
+  Protected g.i = Green(Color0) + Mix * (Green(Color1) - Green(Color0))
+  Protected b.i =  Blue(Color0) + Mix * ( Blue(Color1) -  Blue(Color0))
+  ProcedureReturn (RGB(r, g, b))
+EndProcedure
+
 
 ;-
 ;- Procedures - Images
@@ -1297,6 +1661,30 @@ Procedure.i CreateImageRGBA(Image.i, Width.i, Height.i, Color.i = #OpaqueWhite)
       Image = Result
     EndIf
     ClearImageRGBA(Image, Color)
+  EndIf
+  ProcedureReturn (Result)
+EndProcedure
+
+Procedure.i ConvertImageFile(File.s, NewFile.s = "", Quality.i = 9)
+  Protected Result.i = #False
+  Protected Img.i = LoadImage(#PB_Any, File)
+  If (Img)
+    If (NewFile = "")
+      NewFile = File
+    EndIf
+    Protected Format.i
+    Select (LCase(GetExtensionPart(NewFile)))
+      Case "jpg", "jpeg"
+        Format = #PB_ImagePlugin_JPEG
+      Case "jpg2"
+        Format = #PB_ImagePlugin_JPEG2000
+      Case "png"
+        Format = #PB_ImagePlugin_PNG
+      Default
+        Format = #PB_ImagePlugin_BMP
+    EndSelect
+    Result = Bool(SaveImage(Img, NewFile, Format, Quality))
+    FreeImage(Img)
   EndIf
   ProcedureReturn (Result)
 EndProcedure
@@ -1402,6 +1790,95 @@ Procedure LaunchURL(URL.s, NoPrefix.i = #False)
         RunProgram(URL)
     CompilerEndSelect
   EndIf
+EndProcedure
+
+Procedure.s ReceiveHTTPString(URL.s, UserAgent.s = "", Flags.i = #Null)
+  If (URL)
+    If (UserAgent = "")
+      UserAgent = #ImproveUserAgent + "." + Str(Random(999999))
+    EndIf
+    Protected *Buffer = ReceiveHTTPMemory(URL, Flags, UserAgent)
+    If (*Buffer)
+      Protected HTML.s = PeekS(*Buffer, MemorySize(*Buffer), #PB_UTF8 | #PB_ByteLength)
+      CompilerIf (#Unicode)
+        If (Asc(HTML) = $FEFF) ; Unicode BOM character
+          HTML = Mid(HTML, 2)
+        EndIf
+      CompilerEndIf
+      FreeMemory(*Buffer)
+      ProcedureReturn (HTML)
+    EndIf
+  EndIf
+EndProcedure
+
+CompilerIf (#False)
+Procedure.s GetGlobalIP()
+  If (InitNetwork())
+    ProcedureReturn (ReceiveHTTPString("http://api.ipify.org/"))
+  EndIf
+EndProcedure
+CompilerEndIf
+
+Procedure.i InitNetworkTimeout(Seconds.i = 3*60)
+  Protected Result.i = InitNetwork()
+  If ((Not Result) And (Seconds > 0))
+    Seconds * 1000
+    Protected Start.i = ElapsedMilliseconds()
+    Repeat
+      Delay(500)
+      Result = InitNetwork()
+    Until (Result Or ((ElapsedMilliseconds() - Start) > Seconds))
+  EndIf
+  ProcedureReturn (Result)
+EndProcedure
+
+Procedure.i InitNetworkVerify(Seconds.i = 3*60)
+  Protected Result.i = #False
+  If (Seconds > 0)
+    Protected Start.i = ElapsedMilliseconds()
+    If (InitNetworkTimeout(Seconds))
+      Seconds * 1000
+      Protected TestURL.s = "captive.apple.com?random=" + Str(Random(999999))
+      Protected LTestBody.s = "success"
+      Repeat
+        If (Between(LCase(ReceiveHTTPString(TestURL)), "<body>", "</body>") = LTestBody)
+          Result = #True
+          Break
+        EndIf
+        Delay(1*1000)
+      Until ((ElapsedMilliseconds() - Start) > Seconds)
+    EndIf
+  Else
+    Result = Bool(InitNetwork())
+  EndIf
+  ProcedureReturn (Result)
+EndProcedure
+
+Procedure.i HTTPFileSize(URL.s, UserAgent.s = "")
+  Protected Result.i = -1
+  If (URL)
+    If (UserAgent = "")
+      UserAgent = #ImproveUserAgent + "." + Str(Random(999999))
+    EndIf
+    Protected Raw.s = GetHTTPHeader(URL, #Null, UserAgent)
+    Debug Raw
+    Protected i.i = FindString(Raw, "Content-Length: ")
+    Protected j.i = FindString(Raw, #CRLF$, i)
+    If (i And j)
+      Result = Val(Mid(Raw, i + Len("Content-Length: "), j - i - Len("Content-Length: ")))
+    EndIf
+  EndIf
+  ProcedureReturn (Result)
+EndProcedure
+
+Procedure.i LoadImageURL(Image.i, URL.s)
+  Protected Result.i = #Null
+  Protected *Buffer = ReceiveHTTPMemory(URL)
+  If (*Buffer)
+    Result = CatchImage(Image, *Buffer, MemorySize(*Buffer))
+    FreeMemory(*Buffer)
+  EndIf
+  ProcedureReturn (Result)
 EndProcedure
 
 CompilerEndIf
