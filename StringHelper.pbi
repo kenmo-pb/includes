@@ -1,4 +1,4 @@
-﻿; +------------------+
+; +------------------+
 ; | StringHelper.pbi |
 ; +------------------+
 ; | 2015.02.17 . Creation (PureBasic 5.31)
@@ -11,6 +11,9 @@
 ; | 2017.01.05 . StringBuffer no longer crashes on empty string + 0 nulls
 ; |     .04.20 . Multiple-include safe, emoji codepoints example,
 ; |                added UTF32 To StringBuffer() And PeekCharacter()
+; | 2018.06.09 . PeekCharacter() now accepts #PB_Default string mode,
+; |                added ReadBOM and WriteBOM macros
+; | 2018.07.09 . Added VS15 and VS16 constants (text/emoji variants)
 
 CompilerIf (Not Defined(__StringHelper_Included, #PB_Constant))
 #__StringHelper_Included = #True
@@ -59,6 +62,16 @@ CompilerEndIf
 ;
 #ReplacementChar  = $FFFD
 #ReplacementChar$ =  Chr(#ReplacementChar)
+;
+#VS15_Text   = $FE0E
+#VS15_Text$  =  Chr(#VS15_Text)
+#VS16_Emoji  = $FE0F
+#VS16_Emoji$ =  Chr(#VS16_Emoji)
+;
+#Variant_Text$  = #VS15_Text$
+#Variant_Emoji$ = #VS16_Emoji$
+;
+#BOM = $FEFF
 
 
 
@@ -147,6 +160,13 @@ Macro UTF8CharBytes(CodePoint)
   (StringByteLength(ChrU(CodePoint), #PB_UTF8))
 EndMacro
 
+Macro ReadBOM(File)
+  ReadStringFormat(File)
+EndMacro
+
+Macro WriteBOM(File, Format)
+  WriteStringFormat((File), (Format))
+EndMacro
 
 
 ;-
@@ -219,6 +239,9 @@ Procedure.i PeekCharacter(*Memory, Format.i = #StringMode, *NextChar.INTEGER = #
   Protected StepSize.i
   Protected *Next = #Null
   Protected A.i, B.i, C.i, D.i
+  If ((Format = #PB_Default) Or (Format = 0))
+    Format = #StringMode
+  EndIf
   Select (Format)
   
     Case (#PB_Ascii)
@@ -546,6 +569,23 @@ Procedure.s ReadFileToString(FileName.s, Format.i = #PB_Default)
   ProcedureReturn (Text)
 EndProcedure
 
+Procedure.i ReadFileToList(File.s, List StringList.s(), Format.i = #PB_UTF8)
+  ClearList(StringList())
+  Protected FN.i = ReadFile(#PB_Any, File, Format)
+  If (FN)
+    Protected Line.s
+    While (Not Eof(FN))
+      Line = Trim(ReadString(FN))
+      If (Line)
+        AddElement(StringList())
+        StringList() = Line
+      EndIf
+    Wend
+    CloseFile(FN)
+  EndIf
+  ProcedureReturn (ListSize(StringList()))
+EndProcedure
+
 
 
 ;-
@@ -607,5 +647,4 @@ CompilerIf (#PB_Compiler_IsMainFile)
 CompilerEndIf
 
 CompilerEndIf
-
 ;-
