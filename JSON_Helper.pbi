@@ -10,6 +10,8 @@
 ; | 2018.02.10 . Remove 3-byte BOM, #| $JSON |# tags, in NormalizeJSON()
 ; |        .20 . Allow '-' in a member name
 ; |     .02.22 . FromPath() now strictly uses '/' separator (for '.' in names)
+; |     .07.13 . Added CopyJSONNode(), ComposeJSONNode()
+; |     .07.14 . Added SetJSONObjectEx(), SetJSONArrayEx(), MainJSONNode()
 
 CompilerIf (Not Defined(_JSON_Helper_Included, #PB_Constant))
 #_JSON_Helper_Included = #True
@@ -25,7 +27,7 @@ CompilerEndIf
 
 ; Include Version
 
-#JSON_IncludeVersion = 20180222
+#JSON_IncludeVersion = 20180714
 
 ; JSON Value Types
 #JSON_Array   = #PB_JSON_Array
@@ -40,7 +42,8 @@ CompilerEndIf
 #JSON_Last  = -1
 
 ; JSON Compose Options
-#JSON_UseTabIndent = -1
+#JSON_UseTabIndent  = -1
+#JSON_DefaultIndent =  2
 
 
 
@@ -53,6 +56,10 @@ CompilerEndIf
 
 ;-
 ;- - Top-level Managment
+
+Macro MainJSONNode(JSON)
+  (JSONValue(JSON))
+EndMacro
 
 Procedure.i MainJSONArray(JSON.i)
   Protected *Object = #Null
@@ -271,6 +278,81 @@ Procedure.i NextJSONChild(*Parent, *Current)
 EndProcedure
 
 ;-
+;- - Copy JSON Node
+
+Procedure.i CopyJSONNode(*Src, *Dest, Key.s = "")
+  Protected Result.i = #False
+  If (*Src And *Dest)
+    If (Key)
+      CompilerIf (#True)
+        If (JSONType(*Dest) <> #JSON_Object)
+          *Dest = SetJSONObject(*Dest)
+        EndIf
+      CompilerEndIf
+      If (JSONType(*Dest) = #JSON_Object)
+        *Dest = AddJSONMember(*Dest, Key)
+      Else
+        *Dest = #Null
+      EndIf
+    EndIf
+    If (*Dest)
+      Select (JSONType(*Src))
+        Case #JSON_Boolean
+          SetJSONBoolean(*Dest, GetJSONBoolean(*Src))
+          Result = #True
+        Case #JSON_Null
+          SetJSONNull(*Dest)
+          Result = #True
+        Case #JSON_Number
+          SetJSONDouble(*Dest, GetJSONDouble(*Src)) ;? should handle f, i, q
+          Result = #True
+        Case #JSON_String
+          SetJSONString(*Dest, GetJSONString(*Src))
+          Result = #True
+        Case #JSON_Object
+          If (ExamineJSONMembers(*Src))
+            While (NextJSONMember(*Src))
+              Result = CopyJSONNode(JSONMemberValue(*Src), *Dest, JSONMemberKey(*Src))
+              If (Not Result)
+                Break
+              EndIf
+            Wend
+          EndIf
+        Case #JSON_Array
+          *Dest = SetJSONArray(*Dest)
+          If (*Dest)
+            Protected n.i = JSONArraySize(*Src)
+            Protected i.i
+            For i = 0 To n-1
+              Result = CopyJSONNode(GetJSONElement(*Src, i), AddJSONElement(*Dest, i))
+              If (Not Result)
+                Break
+              EndIf
+            Next i
+          EndIf
+      EndSelect
+    EndIf
+  EndIf
+  ProcedureReturn (Result)
+EndProcedure
+
+Procedure.i SetJSONObjectEx(*JSONValue, *Object = #Null)
+  Protected *Result = SetJSONObject(*JSONValue)
+  If (*Result And *Object And (JSONType(*Object) = #JSON_Object))
+    CopyJSONNode(*Object, *Result)
+  EndIf
+  ProcedureReturn (*Result)
+EndProcedure
+
+Procedure.i SetJSONArrayEx(*JSONValue, *Array = #Null)
+  Protected *Result = SetJSONArray(*JSONValue)
+  If (*Result And *Array And (JSONType(*Array) = #JSON_Array))
+    CopyJSONNode(*Array, *Result)
+  EndIf
+  ProcedureReturn (*Result)
+EndProcedure
+
+;-
 ;- - Compose String Output
 
 Macro ComposeJSONPretty(JSON)
@@ -299,7 +381,7 @@ Procedure.s ComposeJSONTiny(JSON)
   ProcedureReturn (Result)
 EndProcedure
 
-Procedure.s ComposeJSONEx(JSON, IndentSpaces.i, NewLine.s = "")
+Procedure.s ComposeJSONEx(JSON, IndentSpaces.i = #JSON_DefaultIndent, NewLine.s = "")
   Protected Raw.s = ComposeJSON(JSON, #PB_JSON_PrettyPrint)
   If (FindString(Raw, #CRLF$))
     If (NewLine = "")
@@ -340,6 +422,19 @@ Procedure.s ComposeJSONEx(JSON, IndentSpaces.i, NewLine.s = "")
     EndIf
     Result + PeekS(*C)
   Next i
+  ProcedureReturn (Result)
+EndProcedure
+
+Procedure.s ComposeJSONNode(*Node, IndentSpaces.i = #JSON_DefaultIndent, NewLine.s = "")
+  Protected Result.s
+  If (*Node)
+    Protected JSON.i = CreateJSON(#PB_Any)
+    If (JSON)
+      CopyJSONNode(*Node, JSONValue(JSON))
+      Result = ComposeJSONEx(JSON, IndentSpaces, NewLine)
+      FreeJSON(JSON)
+    EndIf
+  EndIf
   ProcedureReturn (Result)
 EndProcedure
 
@@ -636,8 +731,6 @@ AddJSONMemberInteger(*Object, "height", 58)
 *Child = FirstJSONChild(*Array)
 Debug ""
 Debug ComposeJSONPretty(0)
-
-
 
 CompilerEndIf
 CompilerEndIf
