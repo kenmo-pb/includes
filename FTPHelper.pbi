@@ -1,8 +1,10 @@
-﻿; +---------------+
+; +---------------+
 ; | FTPHelper.pbi |
 ; +---------------+
 ; | 2015.06.05 . Creation (PureBasic 5.31)
 ; | 2017.05.22 . Cleanup
+; | 2018.06.15 . Added QuickFTPUpload()
+; | 2018.07.07 . Moved RemoteFile formatting from QuickUpload into Upload
 
 ;-
 CompilerIf (Not Defined(__FTPHelper_Included, #PB_Constant))
@@ -66,10 +68,13 @@ Procedure.i UploadFTPFile(FTP.i, LocalFile.s, RemoteFile.s)
   Protected Result.i = #False
   If (IsFTP(FTP))
     If (LocalFile)
-      If (RemoteFile)
-        If (ChangeFTPDirectory(FTP, GetPathPart(RemoteFile), #True))
-          Result = Bool(SendFTPFile(FTP, LocalFile, GetFilePart(RemoteFile)))
-        EndIf
+      If (RemoteFile = "")
+        RemoteFile = "/" + GetFilePart(LocalFile)
+      ElseIf (Right(RemoteFile, 1) = "/")
+        RemoteFile + GetFilePart(LocalFile)
+      EndIf
+      If (ChangeFTPDirectory(FTP, GetPathPart(RemoteFile), #True))
+        Result = Bool(SendFTPFile(FTP, LocalFile, GetFilePart(RemoteFile)))
       EndIf
     EndIf
   EndIf
@@ -84,6 +89,20 @@ Procedure.i DownloadFTPFile(FTP.i, RemoteFile.s, LocalFile.s)
         If (ChangeFTPDirectory(FTP, GetPathPart(RemoteFile), #False))
           Result = Bool(ReceiveFTPFile(FTP, GetFilePart(RemoteFile), LocalFile))
         EndIf
+      EndIf
+    EndIf
+  EndIf
+  ProcedureReturn (Result)
+EndProcedure
+
+Procedure.i QuickFTPUpload(File.s, Server.s, RemoteFile.s = "", User.s = "", Pass.s = "", Port.i = 21, Passive.i = #True)
+  Protected Result.i = #False
+  If (File And (FileSize(File) >= 0) And Server)
+    If (InitNetwork())
+      Protected FTP.i = OpenFTP(#PB_Any, Server, User, Pass, Passive, Port)
+      If (FTP)
+        Result = UploadFTPFile(FTP, File, RemoteFile)
+        CloseFTP(FTP)
       EndIf
     EndIf
   EndIf
