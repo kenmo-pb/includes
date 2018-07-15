@@ -66,6 +66,12 @@ This lets you Examine() and step through a list of environment paths. On Windows
 + ASCII/Unicode safe
 + Demo included
 
+## [FormatDatePHP.pbi](FormatDatePHP.pbi)
+Provides timestamp-to-string formatting with the same options and syntax as PHP's `date()` function.
++ Windows/Linux/Mac
++ ASCII/Unicode safe
++ Demo included
+
 ## [FTPHelper.pbi](FTPHelper.pbi)
 A few functions to assist you in uploading/downloading/changing the directory in an FTP connection, by full path, instead of manually "walking" the server's directory structure.
 + Windows/Linux/Mac
@@ -128,6 +134,12 @@ Provides a `Requester`-like dialog window, which presents the user with a list o
 + ASCII/Unicode safe
 + Demo included
 
+## [MemGadget.pbi](MemGadget.pbi)
+Custom canvas-based gadget for displaying and editing memory blocks as hex bytes or ASCII characters.
++ Windows/Linux/Mac
++ ASCII/Unicode safe
++ Demo included
+
 ## [OJSON.pbi](OJSON.pbi)
 A variation of JSON.pbi, renamed to OJSON ("Ordered JSON") to avoid conflicts with PB 5.30+. Preserves the order of a JSON Object's members, unlike PB's JSON library. Not a Module.
 + Windows/Linux/Mac
@@ -158,14 +170,31 @@ A very simple file which tells you a `#PB_Shortcut_*` constant's name string fro
 + ASCII/Unicode safe
 + Demo included
 
+## [Podcast.pbi](Podcast.pbi)
+Procedures for generating podcast feeds (RSS/XML files) from channel and episode data.
++ Windows/Linux/Mac
++ ASCII/Unicode safe
++ Demo included
+
 ## [PropertyGadget.pbi](PropertyGadget.pbi)
 An implementation of a PropertyGadget, a custom scrollable gadget containing many types of child gadgets, which can be read/written by numeric index or string ID. Named headers divide them into groups, which can be collapsed or expanded.
 + Windows only (not tested on Linux/Mac)
 + ASCII/Unicode safe
 + Demo included
 
+## [PSDL.pbi](PSDL.pbi)
+Constants and function bindings for an incomplete (but growing) subset of the SDL2 API. Subsystems include Window, Texture, Renderer, Keyboard, Mouse, Joystick, GameController, Haptic. The library can be statically or dynamically linked by setting a compile switch constant.
++ Windows only (not tested on Linux/Mac)
++ ASCII/Unicode safe
+
 ## [RatingGadget.pbi](RatingGadget.pbi)
 Custom canvas-based gadget which allows the user to select a rating on a horizontal image bar. The default range is 5 stars (images included in DataSection). The images and range are changeable.
++ Windows/Linux/Mac
++ ASCII/Unicode safe
++ Demo included
+
+## [RegEx_Helper.pbi](RegEx_Helper.pbi)
+Simple helper functions for replacing, removing, matching, and extracting strings via RegEx patterns.
 + Windows/Linux/Mac
 + ASCII/Unicode safe
 + Demo included
