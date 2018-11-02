@@ -1,8 +1,9 @@
-﻿; +------------------+
+; +------------------+
 ; | EnvironmentPaths |
 ; +------------------+
 ; | 2016.03.23 . Creation
 ; | 2017.05.05 . Multiple-include safe, cleaned up code
+; | 2018.10.30 . Added ResetEnvironmentPath(), FindEnvironmentFile()
 
 ;-
 CompilerIf (Not Defined(__EnvironmentPaths_Included, #PB_Constant))
@@ -30,8 +31,9 @@ Global NewList _EnvPath.s()
 
 Procedure.i ExamineEnvironmentPaths(Flags.i = #Null)
   ClearList(_EnvPath())
+  AddElement(_EnvPath()) : _EnvPath() = GetCurrentDirectory()
   CompilerIf (#PB_Compiler_OS = #PB_OS_Windows)
-    Protected Raw.s = GetEnvironmentVariable("Path")
+    Protected Raw.s = GetEnvironmentVariable("PATH")
     If (Raw)
       Protected n.i = 1 + CountString(Raw, ";")
       Protected Invalid.i
@@ -69,9 +71,17 @@ Procedure.i ExamineEnvironmentPaths(Flags.i = #Null)
         SortList(_EnvPath(), #PB_Sort_Ascending | #PB_Sort_NoCase)
       EndIf
     EndIf
+  CompilerElse
+    ;? TODO: Examine paths on Unix-like systems
+    AddElement(_EnvPath()) : _EnvPath() = "/"
+    AddElement(_EnvPath()) : _EnvPath() = GetHomeDirectory()
   CompilerEndIf
   ResetList(_EnvPath())
   ProcedureReturn (ListSize(_EnvPath()))
+EndProcedure
+
+Procedure ResetEnvironmentPath()
+  ResetList(_EnvPath())
 EndProcedure
 
 Procedure.i NextEnvironmentPath()
@@ -98,6 +108,39 @@ Procedure AddEnvironmentPath(Path.s)
       SetEnvironmentVariable("Path", PathList)
     CompilerEndIf
   EndIf
+EndProcedure
+
+Procedure.s FindEnvironmentFile(Name.s)
+  Protected Result.s
+  If (ExamineEnvironmentPaths(#EnvPaths_NoDuplicates | #EnvPaths_NoMissing))
+    While (NextEnvironmentPath())
+      If (FileSize(EnvironmentPath() + Name) >= 0)
+        Result = EnvironmentPath() + Name
+        Break
+      EndIf
+    Wend
+    If (Result = "")
+      CompilerIf (#PB_Compiler_OS = #PB_OS_Windows)
+        If (GetExtensionPart(Name) = "")
+          Protected ExtList.s = GetEnvironmentVariable("PATHEXT")
+          Protected N.i = 1 + CountString(ExtList, ";")
+          Protected i.i
+          ResetEnvironmentPath()
+          While (NextEnvironmentPath())
+            For i = 1 To N
+              Protected Try.s = Name + "." + LCase(Trim(StringField(ExtList, i, ";"), "."))
+              Try = EnvironmentPath() + Try
+              If (FileSize(Try) >= 0)
+                Result = Try
+                Break
+              EndIf
+            Next i
+          Wend
+        EndIf
+      CompilerEndIf
+    EndIf
+  EndIf
+  ProcedureReturn (Result)
 EndProcedure
 
 
