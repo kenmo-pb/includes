@@ -5,6 +5,8 @@
 ; | 2016.08.01 . Made Unicode safe, improved backspace deletion
 ; |        .11 . Added ImproveWebGadget to prevent Script Error popups
 ; | 2017.02.01 . Cleanup, made multiple-include safe
+; | 2019.01.02 . Added hooks to remove native hotkeys from Windows WebGadget
+; |        .03 . Merged in SetBrowserEmulation()
 
 
 ; Various simple improvements to PB gadgets (effects on Windows only)
@@ -18,6 +20,8 @@
 ;
 ; ImproveWebGadget()
 ;   Disables "Script Error" popups
+;   Set 'Emulation' to a newer IE version
+;   Use keyboard hooks to disable Windows native dialogs (requires events)
 
 
 
@@ -31,6 +35,16 @@ CompilerEndIf
 
 
 CompilerIf (#PB_Compiler_OS = #PB_OS_Windows)
+
+;-
+;- Variables - Private
+
+Global *_WebGadgetHook = #Null
+
+Global _WebGadgetMenuWin.i =  0
+Global _WebGadgetMenuIDN.i = -1
+Global _WebGadgetMenuIDO.i = -1
+
 
 ;-
 ;- Structures - Private
@@ -52,6 +66,33 @@ CompilerEndIf
 
 ;-
 ;- Procedures - Private
+
+Procedure.i __WebGadgetHookCB(nCode.i, wParam.i, lParam.i)
+  Protected Ctrl.i = Bool(GetAsyncKeyState_(#VK_CONTROL) & $8000)
+  If (Ctrl)
+    Protected FirstHit.i = Bool(Not (lParam & $C0000000)) ; MSB = KEYUP, MSB-1 = REPEAT
+    Select (nCode)
+      Case (#HC_ACTION)
+        Select (wParam)
+          Case #VK_N
+            If ((_WebGadgetMenuIDN >= 0) And (FirstHit))
+              PostEvent(#PB_Event_Menu, _WebGadgetMenuWin, _WebGadgetMenuIDN)
+            EndIf
+            ProcedureReturn (#True) ; block
+          Case #VK_O
+            If ((_WebGadgetMenuIDO >= 0) And (FirstHit))
+              PostEvent(#PB_Event_Menu, _WebGadgetMenuWin, _WebGadgetMenuIDO)
+            EndIf
+            ProcedureReturn (#True) ; block
+          Case #VK_S, #VK_P, #VK_L
+            ProcedureReturn (#True) ; block
+          Default
+            ;
+        EndSelect
+    EndSelect
+  EndIf
+  ProcedureReturn (CallNextHookEx_(0, nCode, wParam, lParam))
+EndProcedure
 
 Procedure.i __ImproveStringGadgetCB(hWnd.i, uMsg.i, wParam.i, lParam.i)
   Protected StartPos.i, EndPos.i, *Buffer
@@ -140,6 +181,55 @@ Procedure ImproveWebGadget(Gadget.i)
   EndIf
 EndProcedure
 
+Procedure SetBrowserEmulation(IEVersion.i = 10)
+  Protected lpIEVersion
+  Select (IEVersion)
+    Case (11) : lpIEVersion = 11001
+    Case (10) : lpIEVersion = 10001
+    Case ( 9) : lpIEVersion =  9999
+    Case ( 8) : lpIEVersion =  8888
+    Default
+      If (IEVersion >= 7000)
+        lpIEVersion = IEVersion
+      Else
+        lpIEVersion = 7000
+      EndIf
+  EndSelect
+  
+  Protected lpValueName.s = GetFilePart(ProgramFilename())
+  Protected phkResult.i
+  Protected lpdwDisposition.l
+  If (RegCreateKeyEx_(#HKEY_CURRENT_USER,
+      "SOFTWARE\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_BROWSER_EMULATION",
+      0, #Null, #REG_OPTION_VOLATILE, #KEY_ALL_ACCESS, #Null, @phkResult, @lpdwDisposition) = #ERROR_SUCCESS)
+    RegSetValueEx_(phkResult, lpValueName, 0, #REG_DWORD, @lpIEVersion, SizeOf(LONG))
+    RegCloseKey_(phkResult)
+  EndIf
+EndProcedure
+CompilerIf (#True)
+  SetBrowserEmulation()
+CompilerEndIf
+
+
+
+;-
+;- Macros - Public
+
+Macro HookWebGadgets(State)
+  If ((State) And (Not *_WebGadgetHook))
+    *_WebGadgetHook = SetWindowsHookEx_(#WH_KEYBOARD, @__WebGadgetHookCB(), 0, GetCurrentThreadId_())
+  ElseIf ((Not State) And (*_WebGadgetHook))
+    UnhookWindowsHookEx_(*_WebGadgetHook)
+    *_WebGadgetHook = #Null
+  EndIf
+EndMacro
+
+Macro SetWebGadgetHooks(Window = 0, CtrlN = -1, CtrlO = -1)
+  _WebGadgetMenuWin = (Window)
+  _WebGadgetMenuIDN = (CtrlN)
+  _WebGadgetMenuIDO = (CtrlO)
+EndMacro
+
 
 
 
@@ -164,6 +254,16 @@ EndMacro
 Macro ImproveWebGadget(Gadget)
   ;
 EndMacro
+
+Macro HookWebGadgets(State)
+  ;
+EndMacro
+
+Macro SetWebGadgetHooks(Window = 0, CtrlN = -1, CtrlO = -1)
+  ;
+EndMacro
+
+
 
 CompilerEndIf
 
