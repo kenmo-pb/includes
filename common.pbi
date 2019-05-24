@@ -1,4 +1,4 @@
-; +------------+
+﻿; +------------+
 ; | common.pbi |
 ; +------------+
 ; | 2014.01.24 . Creation (PureBasic 5.21 LTS)
@@ -40,6 +40,12 @@ XIncludeFile #PB_Compiler_FilePath + "os.pbi"
 #PB_PNG      = #PB_ImagePlugin_PNG
 #PB_JPEG     = #PB_ImagePlugin_JPEG
 #PB_JPEG2000 = #PB_ImagePlugin_JPEG2000
+
+#NBSP  = $A0 ; 160
+#NBSP$ = Chr(#NBSP)
+
+#MidDot  = $B7 ; 183
+#MidDot$ = Chr(#MidDot)
 
 ; 2017-08-29
 #ImproveUserAgent = "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36"
@@ -207,6 +213,10 @@ EndMacro
 
 Macro LastField(_String, _Delim)
   StringField(_String, 1 + CountString(_String, _Delim), _Delim)
+EndMacro
+
+Macro RandomField(_String, _Delim)
+  StringField(_String, Random(1 + CountString(_String, _Delim), 1), _Delim)
 EndMacro
 
 Macro Push(PBList)
@@ -521,6 +531,10 @@ Macro GetProgramPath()
   GetPathPart(ProgramFilename())
 EndMacro
 
+Macro GetExecutableName()
+  GetFilePart(ProgramFilename())
+EndMacro
+
 Macro DeleteDirectoryAll(Directory)
   DeleteDirectory(Directory, "", #PB_FileSystem_Force | #PB_FileSystem_Recursive)
 EndMacro
@@ -787,6 +801,94 @@ EndProcedure
 ;-
 ;- Procedures - Strings
 
+Procedure.s StripTags(Text.s, Open.i, Close.i)
+  Protected Result.s
+  Protected InTag.i = #False
+  Protected *C.CHARACTER = @Text
+  While (*C\c)
+    If (InTag)
+      If (*C\c = Close)
+        InTag = #False
+      EndIf
+    Else
+      If (*C\c = Open)
+        InTag = #True
+      Else
+        Result + Chr(*C\c)
+      EndIf
+    EndIf
+    *C + SizeOf(CHARACTER)
+  Wend
+  ProcedureReturn (Result)
+EndProcedure
+
+Procedure.s StripHTML(HTMLText.s)
+  ProcedureReturn (StripTags(HTMLText, '<', '>'))
+EndProcedure
+
+Procedure.s EscapeHTML(Text.s)
+  Text = ReplaceString(Text, "&", "&amp;")
+  Text = ReplaceString(Text, "<", "&lt;")
+  Text = ReplaceString(Text, ">", "&gt;")
+  ;Text = ReplaceString(Text, "'", "&apos;")
+  Text = ReplaceString(Text, #DQUOTE$, "&quot;")
+  Text = ReplaceString(Text, Chr($A0), "&nbsp;")
+  ProcedureReturn (Text)
+EndProcedure
+
+Procedure.s UnescapeHTML(HTMLText.s)
+  ; https://www.w3schools.com/html/html_entities.asp
+  ; https://www.freeformatter.com/html-entities.html
+  HTMLText = ReplaceString(HTMLText, "&amp;", #DC1$, #PB_String_NoCase)
+  HTMLText = ReplaceString(HTMLText, "&lt;", "<", #PB_String_NoCase)
+  HTMLText = ReplaceString(HTMLText, "&gt;", ">", #PB_String_NoCase)
+  HTMLText = ReplaceString(HTMLText, "&nbsp;", Chr(160), #PB_String_NoCase)
+  HTMLText = ReplaceString(HTMLText, "&copy;", Chr(169), #PB_String_NoCase)
+  HTMLText = ReplaceString(HTMLText, "&reg;", Chr(174), #PB_String_NoCase)
+  HTMLText = ReplaceString(HTMLText, "&deg;", Chr(176), #PB_String_NoCase)
+  HTMLText = ReplaceString(HTMLText, "&micro;", Chr(181), #PB_String_NoCase)
+  HTMLText = ReplaceString(HTMLText, "&quot;", #DQUOTE$, #PB_String_NoCase)
+  HTMLText = ReplaceString(HTMLText, "&apos;", "'", #PB_String_NoCase)
+  HTMLText = ReplaceString(HTMLText, "&bull;", Chr(8226), #PB_String_NoCase)
+  HTMLText = ReplaceString(HTMLText, "&bullet;", Chr(8226), #PB_String_NoCase)
+  HTMLText = ReplaceString(HTMLText, "&middot;", Chr(183), #PB_String_NoCase)
+  
+  Protected i.i = 0
+  Protected j.i, Term.s
+  While (#True)
+    i = FindString(HTMLText, "&", i+1)
+    If (i)
+      j = FindString(HTMLText, ";", i+1)
+    Else
+      j = 0
+    EndIf
+    ; &x1F99E;
+    ; &123456;
+    ; 12345678
+    If (i And j)
+      If (j - i <= 7)
+        Term = Mid(HTMLText, i + 1, j - i - 1)
+        ;? handle UTF-16 chars?
+        Select (Asc(Term))
+          Case 'x', 'X'
+            Term = Chr(Val("$" + Mid(Term, 2)))
+            HTMLText = Left(HTMLText, i-1) + Term + Mid(HTMLText, j+1)
+          Case '0' To '9'
+            Term = Chr(Val(Term))
+            HTMLText = Left(HTMLText, i-1) + Term + Mid(HTMLText, j+1)
+          Default
+            ;
+        EndSelect
+      EndIf
+    Else
+      Break
+    EndIf
+  Wend
+  
+  HTMLText = ReplaceString(HTMLText, #DC1$, "&")
+  ProcedureReturn (HTMLText)
+EndProcedure
+
 Procedure.s ReplaceVariations(String.s, StringToFind.s, StringToReplace.s)
   String = ReplaceString(String, StringToFind, StringToReplace)
   String = ReplaceString(String, UCase(StringToFind), UCase(StringToReplace))
@@ -902,6 +1004,11 @@ Procedure.s HexFormat(Value.i, Width.i = #PB_Default, Prefix.s = "", Suffix.s = 
   EndIf
   Result = Prefix + RSet(Result, Chars, "0") + Suffix
   ProcedureReturn (Result)
+EndProcedure
+
+Procedure.s RandomString(List StringList.s())
+  SelectRandomElement(StringList())
+  ProcedureReturn (StringList())
 EndProcedure
 
 Procedure.i SplitString(Input.s, Array Output.s(1), Delimiter.s = "", IgnoreBlanks.i = #False)
@@ -1024,6 +1131,35 @@ Procedure.i FindLastOccurrence(String.s, StringToFind.s, StartPosition.i = 1, Mo
   ProcedureReturn (Result)
 EndProcedure
 
+Procedure.i FindOccurrence(String.s, StringToFind.s, Occurrence.i, Mode.i = 0)
+  Protected Result.i = 0
+  Protected i.i = 1
+  Protected Found.i = 0
+  If (String And StringToFind)
+    Repeat
+      i = FindString(String, StringToFind, i, Mode)
+      If (i)
+        Found + 1
+        If (Found = Occurrence)
+          Result = i
+          Break
+        EndIf
+        i + Len(StringToFind)
+      EndIf
+    Until (Not i)
+  EndIf
+  ProcedureReturn (Result)
+EndProcedure
+
+Procedure.s After(String.s, StringToFind.s, Occurrence.i = 1)
+  Protected Result.s
+  Protected i.i = FindOccurrence(String, StringToFind, Occurrence)
+  If (i)
+    Result = Mid(String, i + Len(StringToFind))
+  EndIf
+  ProcedureReturn (Result)
+EndProcedure
+
 Procedure.s GetDotExtensionPart(Path.s)
   Protected Result.s = GetExtensionPart(Path)
   If (Result)
@@ -1055,6 +1191,9 @@ Procedure.s RemovePathSeparator(Path.s)
 EndProcedure
 
 Procedure.s GetParentPath(Path.s)
+  CompilerIf (#Windows)
+    ReplaceString(Path, #NPS$, #PS$, #PB_String_InPlace)
+  CompilerEndIf
   If (Trim(Path, #PS$) = "")
     ProcedureReturn ("")
   Else
@@ -1295,6 +1434,22 @@ Procedure.i CreateFileFromData(FileName.s, *MemoryBuffer, LengthToWrite.i)
   ProcedureReturn (Result)
 EndProcedure
 
+Procedure.s GetAppName()
+  CompilerIf (#Mac)
+    Protected Path.s = GetProgramPath()
+    If (FindString(Path, ".app/"))
+      While (Not EndsWith(Path, ".app/"))
+        Path = GetParentPath(Path)
+      Wend
+      ProcedureReturn (GetTopPath(Path))
+    Else
+      ProcedureReturn (GetExecutableName())
+    EndIf
+  CompilerElse
+    ProcedureReturn (GetExecutableName())
+  CompilerEndIf
+EndProcedure
+
 Procedure.i CreateDirectoryFull(Path.s)
   CompilerIf (#PB_Compiler_OS = #PB_OS_Windows)
     ReplaceString(Path, "/", "\", #PB_String_InPlace)
@@ -1312,6 +1467,24 @@ Procedure.i CreateDirectoryFull(Path.s)
     EndIf
   EndIf
   ProcedureReturn (#False)
+EndProcedure
+
+Procedure.s FindFirstFile(Directory.s, Pattern.s)
+  Protected Result.s
+  If (Directory = "")
+    Directory = GetCurrentDirectory()
+  EndIf
+  Protected DN.i = ExamineDirectory(#PB_Any, Directory, Pattern)
+  If (DN)
+    While (NextDirectoryEntry(DN))
+      If (DirectoryEntryType(DN) = #PB_DirectoryEntry_File)
+        Result = Directory + DirectoryEntryName(DN)
+        Break
+      EndIf
+    Wend
+    FinishDirectory(DN)
+  EndIf
+  ProcedureReturn (Result)
 EndProcedure
 
 Procedure.i LocateAsset(Path.s)
@@ -1665,6 +1838,21 @@ Procedure.i CreateImageRGBA(Image.i, Width.i, Height.i, Color.i = #OpaqueWhite)
   ProcedureReturn (Result)
 EndProcedure
 
+Procedure.i SaveImageFile(Image.i, File.s, Quality.i = 9)
+  Protected Format.i
+  Select (LCase(GetExtensionPart(File)))
+    Case "jpg", "jpeg"
+      Format = #PB_ImagePlugin_JPEG
+    Case "jpg2"
+      Format = #PB_ImagePlugin_JPEG2000
+    Case "png"
+      Format = #PB_ImagePlugin_PNG
+    Default
+      Format = #PB_ImagePlugin_BMP
+  EndSelect
+  ProcedureReturn (Bool(SaveImage(Image, File, Format, Quality)))
+EndProcedure
+
 Procedure.i ConvertImageFile(File.s, NewFile.s = "", Quality.i = 9)
   Protected Result.i = #False
   Protected Img.i = LoadImage(#PB_Any, File)
@@ -1672,18 +1860,7 @@ Procedure.i ConvertImageFile(File.s, NewFile.s = "", Quality.i = 9)
     If (NewFile = "")
       NewFile = File
     EndIf
-    Protected Format.i
-    Select (LCase(GetExtensionPart(NewFile)))
-      Case "jpg", "jpeg"
-        Format = #PB_ImagePlugin_JPEG
-      Case "jpg2"
-        Format = #PB_ImagePlugin_JPEG2000
-      Case "png"
-        Format = #PB_ImagePlugin_PNG
-      Default
-        Format = #PB_ImagePlugin_BMP
-    EndSelect
-    Result = Bool(SaveImage(Img, NewFile, Format, Quality))
+    Result = SaveImageFile(Img, NewFile, Quality)
     FreeImage(Img)
   EndIf
   ProcedureReturn (Result)
@@ -1838,10 +2015,12 @@ Procedure.i InitNetworkVerify(Seconds.i = 3*60)
     Protected Start.i = ElapsedMilliseconds()
     If (InitNetworkTimeout(Seconds))
       Seconds * 1000
-      Protected TestURL.s = "captive.apple.com?random=" + Str(Random(999999))
-      Protected LTestBody.s = "success"
+      ;Protected TestURL.s = "captive.apple.com?random=" + Str(Random(999999))
+      ;Protected LTestBody.s = "success"
       Repeat
-        If (Between(LCase(ReceiveHTTPString(TestURL)), "<body>", "</body>") = LTestBody)
+        Protected TestURL.s = "captive.apple.com?random=" + Str(Random(999999))
+        ;If (Between(LCase(ReceiveHTTPString(TestURL)), "<body>", "</body>") = LTestBody)
+        If (FindString(ReceiveHTTPString(TestURL), "Success"))
           Result = #True
           Break
         EndIf
@@ -1861,7 +2040,6 @@ Procedure.i HTTPFileSize(URL.s, UserAgent.s = "")
       UserAgent = #ImproveUserAgent + "." + Str(Random(999999))
     EndIf
     Protected Raw.s = GetHTTPHeader(URL, #Null, UserAgent)
-    Debug Raw
     Protected i.i = FindString(Raw, "Content-Length: ")
     Protected j.i = FindString(Raw, #CRLF$, i)
     If (i And j)
