@@ -2,9 +2,14 @@
 ; | RegEx_Helper |
 ; +--------------+
 ; | 2018-06-22 : Creation
+; | 2018-09-05 : Match() now forces "^" and "$", Contains() does not
+; | 2018-09-20 : Added ReExtract() to get first match
 
 ;   \s = whitespace characters (\S = NOT whitespace characters)
 ;   \w = word characters (\W = NOT word characters)
+;   \d = digits (\D = NOT digits)
+;
+;   . = any character (newlines optional)
 ;
 ;   * = 0 or more (greedy, as much as possible)
 ;   + = 1 or more (greedy, as much as possible)
@@ -13,6 +18,9 @@
 ;
 ;   ^ = start of string/line
 ;   $ = end of string/line
+;
+;   (?=SUFFIX)  = lookahead
+;   (?<=PREFIX) = lookbehind
 
 ;-
 CompilerIf (Not Defined(_RegEx_Helper_Included, #PB_Constant))
@@ -38,11 +46,27 @@ Procedure.s ReRemove(String.s, Pattern.s, Flags.i = #Null)
   ProcedureReturn (ReReplace(String, Pattern, "", Flags))
 EndProcedure
 
-Procedure.i ReMatch(String.s, Pattern.s, Flags.i = #Null)
+Procedure.i ReContains(String.s, Pattern.s, Flags.i = #Null)
   Protected Result.i = #False
   Protected *RE = CreateRegularExpression(#PB_Any, Pattern, Flags)
   If (*RE)
-    Result = MatchRegularExpression(*RE, String)
+    Result = Bool(MatchRegularExpression(*RE, String))
+    FreeRegularExpression(*RE)
+  EndIf
+  ProcedureReturn (Result)
+EndProcedure
+
+Procedure.i ReMatch(String.s, Pattern.s, Flags.i = #Null)
+  Protected Result.i = #False
+  If (Left(Pattern, 1) <> "^")
+    Pattern = "^" + Pattern
+  EndIf
+  If (Right(Pattern, 1) <> "$")
+    Pattern = Pattern + "$"
+  EndIf
+  Protected *RE = CreateRegularExpression(#PB_Any, Pattern, Flags)
+  If (*RE)
+    Result = Bool(MatchRegularExpression(*RE, String))
     FreeRegularExpression(*RE)
   EndIf
   ProcedureReturn (Result)
@@ -55,6 +79,15 @@ Procedure.i ReExtractArray(String.s, Pattern.s, Array Match.s(1), Flags.i = #Nul
   If (*RE)
     Result = ExtractRegularExpression(*RE, String, Match())
     FreeRegularExpression(*RE)
+  EndIf
+  ProcedureReturn (Result)
+EndProcedure
+
+Procedure.s ReExtract(String.s, Pattern.s, Flags.i = #Null)
+  Protected Result.s
+  Dim AMatch.s(0)
+  If (ReExtractArray(String, Pattern, AMatch(), Flags) > 0)
+    Result = AMatch(0)
   EndIf
   ProcedureReturn (Result)
 EndProcedure
@@ -94,7 +127,9 @@ Debug ReReplace("Hello World!", "\s+", "___")
 
 Debug ReRemove("Hello World!", "l")
 
-Debug ReMatch("Hello World!", "^[GHI].*\W$")
+Debug ""
+Debug ReContains("Hello World!", "World")
+Debug ReMatch("Hello World!", "World")
 
 Debug ""
 Debug ReQuickExtract("Hello World!", "[a-z]+")
