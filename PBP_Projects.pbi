@@ -5,6 +5,7 @@
 ; | 2016.10.26 . Added "dll", "so", "dylib" recognition
 ; | 2017.05.08 . Multiple-include safe, added demo, path separator fixing,
 ; |                added OS guessing based on icon file
+; | 2019.05.24 . Added support for DPIAWARE compile flag (PB 5.70)
 
 ;-
 CompilerIf (Not Defined(__PBP_Projects_Included, #PB_Constant))
@@ -281,6 +282,9 @@ Procedure.s PBP_TargetBuildString(*Target, ProjectPath.s = "")
       EndIf
       If (_PBP_GetTargetOption(*Target, "xpskin"))
         Result + " /XP"
+      EndIf
+      If (_PBP_GetTargetOption(*Target, "dpiaware"))
+        Result + " /DPIAWARE"
       EndIf
       If (_PBP_GetTargetOption(*Target, "admin"))
         Result + " /ADMINISTRATOR"
