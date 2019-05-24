@@ -6,6 +6,7 @@
 ; |        .30 . Bypass same-size resizes, added FitIfLarger, FitOrCenter
 ; |        .31 . Fixed demo ghosting with alpha (Canvas instead of ImgGad),
 ; |                fixed tile offset, FitIfLarger, FitOrCenter
+; | 2019.02.20 . Added SetScaleImageBorderAlpha()
 
 
 ;-
@@ -58,6 +59,7 @@ EndEnumeration
 
 #__ScaleImage_BorderColorDefault = $000000
 #__ScaleImage_JPEGQualityDefault =  7
+#__ScaleImage_BorderAlphaDefault = $FF
 
 
 
@@ -66,6 +68,7 @@ EndEnumeration
 ;- Variables (Private)
 
 Global __ScaleImage_BorderColor.i = #__ScaleImage_BorderColorDefault
+Global __ScaleImage_BorderAlpha.i = #__ScaleImage_BorderAlphaDefault
 Global __ScaleImage_JPEGQuality.i = #__ScaleImage_JPEGQualityDefault
 
 
@@ -232,7 +235,7 @@ Procedure.i ScaleImage(Image.i, Width.i, Height.i, Flags.i = #PB_Default, NewIma
                 Else
                   dy = (Height - TempHeight)/2
                 EndIf
-                Box(0, 0, Width, Height, __ScaleImage_BorderColor | $FF000000)
+                Box(0, 0, Width, Height, __ScaleImage_BorderColor | (__ScaleImage_BorderAlpha << 24))
                 DrawImage(ImageID(TempImage), dx, dy)
                 StopDrawing()
               Else
@@ -307,7 +310,7 @@ Procedure.i ScaleImage(Image.i, Width.i, Height.i, Flags.i = #PB_Default, NewIma
           If (ResizeImage(DestImage, Width, Height, #PB_Image_Raw))
             If (StartDrawing(ImageOutput(DestImage)))
               DrawingMode(#PB_2DDrawing_AllChannels)
-              Box(0, 0, Width, Height, __ScaleImage_BorderColor | $FF000000)
+              Box(0, 0, Width, Height, __ScaleImage_BorderColor | (__ScaleImage_BorderAlpha << 24))
               If (Flags & #ScaleImage_Left)
                 dx = 0
               ElseIf (Flags & #ScaleImage_Right)
@@ -380,7 +383,13 @@ EndProcedure
 
 Procedure.i SetScaleImageBorderColor(Color.i)
   Protected Result.i = __ScaleImage_BorderColor
-  __ScaleImage_BorderColor = Color & $FFFFFFFF
+  __ScaleImage_BorderColor = Color & $00FFFFFF
+  ProcedureReturn (Result)
+EndProcedure
+
+Procedure.i SetScaleImageBorderAlpha(Alpha.i)
+  Protected Result.i = __ScaleImage_BorderAlpha
+  __ScaleImage_BorderAlpha = Alpha & $FF
   ProcedureReturn (Result)
 EndProcedure
 
