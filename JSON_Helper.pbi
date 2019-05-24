@@ -1,4 +1,4 @@
-; +-----------------+
+﻿; +-----------------+
 ; | JSON_Helper.pbi |
 ; +-----------------+
 ; | 2015.07.09 . Creation (PureBasic 5.31)
@@ -11,7 +11,9 @@
 ; |        .20 . Allow '-' in a member name
 ; |     .02.22 . FromPath() now strictly uses '/' separator (for '.' in names)
 ; |     .07.13 . Added CopyJSONNode(), ComposeJSONNode()
-; |     .07.14 . Added SetJSONObjectEx(), SetJSONArrayEx(), MainJSONNode()
+; |        .14 . Added SetJSONObjectEx(), SetJSONArrayEx(), MainJSONNode()
+; |        .27 . Added SelectJSONMember(*Object, Index)
+; |     .08.09 . Added RandomJSONMember(), RandomJSONElement()
 
 CompilerIf (Not Defined(_JSON_Helper_Included, #PB_Constant))
 #_JSON_Helper_Included = #True
@@ -27,7 +29,7 @@ CompilerEndIf
 
 ; Include Version
 
-#JSON_IncludeVersion = 20180714
+#JSON_IncludeVersion = 20180809
 
 ; JSON Value Types
 #JSON_Array   = #PB_JSON_Array
@@ -51,8 +53,34 @@ CompilerEndIf
 
 
 
+
 ;-
-;- Procedures (Public)
+;- - Check JSON Value Type
+
+Macro IsJSONArray(Value)
+  Bool(JSONType(Value) = #JSON_Array)
+EndMacro
+
+Macro IsJSONBoolean(Value)
+  Bool(JSONType(Value) = #JSON_Boolean)
+EndMacro
+
+Macro IsJSONNull(Value)
+  Bool(JSONType(Value) = #JSON_Null)
+EndMacro
+
+Macro IsJSONNumber(Value)
+  Bool(JSONType(Value) = #JSON_Number)
+EndMacro
+
+Macro IsJSONObject(Value)
+  Bool(JSONType(Value) = #JSON_Object)
+EndMacro
+
+Macro IsJSONString(Value)
+  Bool(JSONType(Value) = #JSON_String)
+EndMacro
+
 
 ;-
 ;- - Top-level Managment
@@ -125,7 +153,7 @@ Procedure.i JSONNodeFromPath(*Parent, Path.s, Type.i = #PB_Any)
         Default
           If (*C > *Start)
             Name = PeekS(*Start, (*C - *Start)/SizeOf(CHARACTER))
-            If (JSONType(*Node) = #JSON_Object)
+            If (IsJSONObject(*Node))
               *Node = GetJSONMember(*Node, Name)
               If (Not *Node)
                 Break
@@ -136,7 +164,7 @@ Procedure.i JSONNodeFromPath(*Parent, Path.s, Type.i = #PB_Any)
             EndIf
           EndIf
           If (*C\c = '[')
-            If (JSONType(*Node) = #JSON_Array)
+            If (IsJSONArray(*Node))
               *Start = *C + SizeOf(CHARACTER)
               Repeat
                 *C + SizeOf(CHARACTER)
@@ -235,13 +263,13 @@ EndProcedure
 Procedure.i FirstJSONChild(*Parent)
   Protected *Result = #Null
   If (*Parent)
-    If (JSONType(*Parent) = #PB_JSON_Object)
+    If (IsJSONObject(*Parent))
       If (ExamineJSONMembers(*Parent))
         If (NextJSONMember(*Parent))
           *Result = JSONMemberValue(*Parent)
         EndIf
       EndIf
-    ElseIf (JSONType(*Parent) = #PB_JSON_Array)
+    ElseIf (IsJSONArray(*Parent))
       *Result = GetJSONElement(*Parent, 0)
     EndIf
   EndIf
@@ -251,7 +279,7 @@ EndProcedure
 Procedure.i NextJSONChild(*Parent, *Current)
   Protected *Result = #Null
   If (*Parent And *Current)
-    If (JSONType(*Parent) = #PB_JSON_Object)
+    If (IsJSONObject(*Parent))
       If (ExamineJSONMembers(*Parent))
         Protected ReturnNext.i = #False
         While (NextJSONMember(*Parent))
@@ -263,7 +291,7 @@ Procedure.i NextJSONChild(*Parent, *Current)
           EndIf
         Wend
       EndIf
-    ElseIf (JSONType(*Parent) = #PB_JSON_Array)
+    ElseIf (IsJSONArray(*Parent))
       Protected n.i = JSONArraySize(*Parent)
       Protected i.i
       For i = 0 To n - 2
@@ -277,6 +305,48 @@ Procedure.i NextJSONChild(*Parent, *Current)
   ProcedureReturn (*Result)
 EndProcedure
 
+Procedure.i SelectJSONMember(*Object, Index.i)
+  ; Warning: PB's JSON library does not preserve member order,
+  ;          so 'Index' may not match what you expect
+  Protected *Result
+  If (*Object And IsJSONObject(*Object) And (Index >= 0))
+    Protected N.i = JSONObjectSize(*Object)
+    If (Index < N)
+      If (ExamineJSONMembers(*Object))
+        Repeat
+          NextJSONMember(*Object)
+          Index - 1
+        Until (Index = -1)
+        *Result = JSONMemberValue(*Object)
+      EndIf
+    EndIf
+  EndIf
+  ProcedureReturn (*Result)
+EndProcedure
+
+Procedure.i RandomJSONMember(*Object)
+  Protected *Result
+  If (*Object And IsJSONObject(*Object))
+    Protected N.i = JSONObjectSize(*Object)
+    If (N > 0)
+      *Result = SelectJSONMember(*Object, Random(N-1))
+    EndIf
+  EndIf
+  ProcedureReturn (*Result)
+EndProcedure
+
+Procedure.i RandomJSONElement(*Array)
+  Protected *Result
+  If (*Array And IsJSONArray(*Array))
+    Protected N.i = JSONArraySize(*Array)
+    If (N > 0)
+      *Result = GetJSONElement(*Array, Random(N-1))
+    EndIf
+  EndIf
+  ProcedureReturn (*Result)
+EndProcedure
+
+
 ;-
 ;- - Copy JSON Node
 
@@ -289,7 +359,7 @@ Procedure.i CopyJSONNode(*Src, *Dest, Key.s = "")
           *Dest = SetJSONObject(*Dest)
         EndIf
       CompilerEndIf
-      If (JSONType(*Dest) = #JSON_Object)
+      If (IsJSONObject(*Dest))
         *Dest = AddJSONMember(*Dest, Key)
       Else
         *Dest = #Null
@@ -304,7 +374,11 @@ Procedure.i CopyJSONNode(*Src, *Dest, Key.s = "")
           SetJSONNull(*Dest)
           Result = #True
         Case #JSON_Number
-          SetJSONDouble(*Dest, GetJSONDouble(*Src)) ;? should handle f, i, q
+          If ((GetJSONDouble(*Src) = GetJSONInteger(*Src)) And (#False))
+            SetJSONInteger(*Dest, GetJSONInteger(*Src))
+          Else
+            SetJSONDouble(*Dest, GetJSONDouble(*Src))
+          EndIf
           Result = #True
         Case #JSON_String
           SetJSONString(*Dest, GetJSONString(*Src))
@@ -338,7 +412,7 @@ EndProcedure
 
 Procedure.i SetJSONObjectEx(*JSONValue, *Object = #Null)
   Protected *Result = SetJSONObject(*JSONValue)
-  If (*Result And *Object And (JSONType(*Object) = #JSON_Object))
+  If (*Result And *Object And IsJSONObject(*Object))
     CopyJSONNode(*Object, *Result)
   EndIf
   ProcedureReturn (*Result)
@@ -346,7 +420,7 @@ EndProcedure
 
 Procedure.i SetJSONArrayEx(*JSONValue, *Array = #Null)
   Protected *Result = SetJSONArray(*JSONValue)
-  If (*Result And *Array And (JSONType(*Array) = #JSON_Array))
+  If (*Result And *Array And IsJSONArray(*Array))
     CopyJSONNode(*Array, *Result)
   EndIf
   ProcedureReturn (*Result)
@@ -672,32 +746,6 @@ Procedure.i AddJSONElementString(*Parent, Text.s = "", Index.i = #JSON_Last)
   ProcedureReturn (*Result)
 EndProcedure
 
-;-
-;- - Check JSON Value Type
-
-Macro IsJSONArray(Value)
-  Bool(JSONType(Value) = #JSON_Array)
-EndMacro
-
-Macro IsJSONBoolean(Value)
-  Bool(JSONType(Value) = #JSON_Boolean)
-EndMacro
-
-Macro IsJSONNull(Value)
-  Bool(JSONType(Value) = #JSON_Null)
-EndMacro
-
-Macro IsJSONNumber(Value)
-  Bool(JSONType(Value) = #JSON_Number)
-EndMacro
-
-Macro IsJSONObject(Value)
-  Bool(JSONType(Value) = #JSON_Object)
-EndMacro
-
-Macro IsJSONString(Value)
-  Bool(JSONType(Value) = #JSON_String)
-EndMacro
 
 
 
