@@ -1,10 +1,12 @@
-; +---------------+
+﻿; +---------------+
 ; | FTPHelper.pbi |
 ; +---------------+
 ; | 2015.06.05 . Creation (PureBasic 5.31)
 ; | 2017.05.22 . Cleanup
 ; | 2018.06.15 . Added QuickFTPUpload()
 ; | 2018.07.07 . Moved RemoteFile formatting from QuickUpload into Upload
+; | 2018.11.08 . Upload and Download now default to current FTP/Local dirs
+; | 2018.11.09 . Added OpenFTPFromFile
 
 ;-
 CompilerIf (Not Defined(__FTPHelper_Included, #PB_Constant))
@@ -64,12 +66,13 @@ Procedure.i ChangeFTPDirectory(FTP.i, Directory.s, Create.i = #False)
   ProcedureReturn (Result)
 EndProcedure
 
-Procedure.i UploadFTPFile(FTP.i, LocalFile.s, RemoteFile.s)
+Procedure.i UploadFTPFile(FTP.i, LocalFile.s, RemoteFile.s = "")
   Protected Result.i = #False
   If (IsFTP(FTP))
     If (LocalFile)
       If (RemoteFile = "")
-        RemoteFile = "/" + GetFilePart(LocalFile)
+        ;RemoteFile = "/" + GetFilePart(LocalFile)
+        RemoteFile = GetFTPDirectory(FTP) + "/" + GetFilePart(LocalFile)
       ElseIf (Right(RemoteFile, 1) = "/")
         RemoteFile + GetFilePart(LocalFile)
       EndIf
@@ -81,14 +84,18 @@ Procedure.i UploadFTPFile(FTP.i, LocalFile.s, RemoteFile.s)
   ProcedureReturn (Result)
 EndProcedure
 
-Procedure.i DownloadFTPFile(FTP.i, RemoteFile.s, LocalFile.s)
+Procedure.i DownloadFTPFile(FTP.i, RemoteFile.s, LocalFile.s = "")
   Protected Result.i = #False
   If (IsFTP(FTP))
-    If (LocalFile)
-      If (RemoteFile)
-        If (ChangeFTPDirectory(FTP, GetPathPart(RemoteFile), #False))
-          Result = Bool(ReceiveFTPFile(FTP, GetFilePart(RemoteFile), LocalFile))
-        EndIf
+    If (RemoteFile)
+      If (GetPathPart(RemoteFile) = "")
+        RemoteFile = GetFTPDirectory(FTP) + "/" + RemoteFile
+      EndIf
+      If (LocalFile = "")
+        LocalFile = GetCurrentDirectory() + GetFilePart(RemoteFile)
+      EndIf
+      If (ChangeFTPDirectory(FTP, GetPathPart(RemoteFile), #False))
+        Result = Bool(ReceiveFTPFile(FTP, GetFilePart(RemoteFile), LocalFile))
       EndIf
     EndIf
   EndIf
@@ -108,6 +115,72 @@ Procedure.i QuickFTPUpload(File.s, Server.s, RemoteFile.s = "", User.s = "", Pas
   EndIf
   ProcedureReturn (Result)
 EndProcedure
+
+Procedure.s FTPDirectoryContents(FTP.i, IncludeParent.i = #False)
+  Protected Result.s
+  If (ExamineFTPDirectory(FTP))
+    While (NextFTPDirectoryEntry(FTP))
+      Protected Name.s = FTPDirectoryEntryName(FTP)
+      Select (Name)
+        Case "."
+          ; skip
+        Case".."
+          If (IncludeParent)
+            Result + #LF$ + ".."
+          EndIf
+        Default
+          Result + #LF$ + FTPDirectoryEntryName(FTP)
+          If (FTPDirectoryEntryType(FTP) = #PB_FTP_Directory)
+            Result + "/"
+          EndIf
+      EndSelect
+    Wend
+    FinishFTPDirectory(FTP)
+  EndIf
+  ProcedureReturn (Mid(Result, 2))
+EndProcedure
+
+Procedure.i OpenFTPFromFile(FTP.i, File.s, Group.s = "")
+  Protected Result.i = #Null
+  If (OpenPreferences(File))
+    If ((Group = "") Or (PreferenceGroup(Group)))
+      Protected RemoveChar.s = Left(ReadPreferenceString("rc", ""), 1)
+      Protected Server.s = RemoveString(ReadPreferenceString("s", ""), RemoveChar)
+      Protected User.s = RemoveString(ReadPreferenceString("u", ""), RemoveChar)
+      Protected Pass.s = RemoveString(ReadPreferenceString("p", ""), RemoveChar)
+      Protected Dir.s = RemoveString(ReadPreferenceString("d", ""), RemoveChar)
+      Protected Port.i = ReadPreferenceInteger("port", 21)
+      Protected Passive.i = Bool(ReadPreferenceInteger("passive", 1))
+      If (FindString(Server, "://"))
+        Server = StringField(Server, 2, "://")
+      EndIf
+      Server = RTrim(Server, "/")
+      If (Server And User And Pass And (Port > 0))
+        Result = OpenFTP(FTP, Server, User, Pass, Passive, Port)
+        PokeS(@Pass, Space(Len(Pass)))
+        If (Result)
+          If (FTP = #PB_Any)
+            FTP = Result
+          EndIf
+          If (Dir)
+            If (Right(Dir, 1) <> "/")
+              Dir + "/"
+            EndIf
+            If (ChangeFTPDirectory(FTP, Dir, #False))
+              ;
+            Else
+              CloseFTP(FTP)
+              Result = #Null
+            EndIf
+          EndIf
+        EndIf
+      EndIf
+    EndIf
+    ClosePreferences()
+  EndIf
+  ProcedureReturn (Result)
+EndProcedure
+
 
 
 
