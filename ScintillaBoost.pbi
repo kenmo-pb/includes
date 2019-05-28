@@ -13,10 +13,17 @@
 ; | 2016.02.17 . Sci_DeleteForward_() now maps directly to Sci_Clear()
 ; | 2017.01.05 . Added Sci_AppendNull_()
 ; |     .05.22 . Multiple-include safe
+; | 2018.11.12 . Improved Find_() and GetRangeText_() Unicode handling
+; |        .13 . Rewrote Find_() to use native Scintilla search,
+; |                added LoadFile_() and SaveFile_(), Find direction macros
+; | 2019.01.15 . Find_() now calls ScrollRange(), added ScrollSelection_(),
+; |                fixed 0-terminator byte bug in GetRangeText_()
+; |     .05.23 . Added Sci_GetScrollYPercent_()
+; |        .25 . Added Sci_SetScrollYPercent_()
 
-;   Generated 2017.05.22
+;   Generated 2019.05.25
 ;     via "ScintillaBoost_Generator.pb"
-;     in PureBasic 5.60
+;     in PureBasic 5.70
 ;     processing "ScintillaList-20141002.txt"
 
 CompilerIf (Not Defined(__ScintillaBoost_Included, #PB_Constant))
@@ -3000,6 +3007,8 @@ CompilerIf (Not Defined(_Sci_NoExtraFunctions, #PB_Constant))
 #SB_Find_WholeWord = $02
 #SB_Find_Backward  = $04
 #SB_Find_NoWrap    = $08
+#SB_Find_Forward   = $00
+#SB_Find_Reverse   = #SB_Find_Backward
 
 Macro Sci_Send_(Gadget, Message, Param = 0, lParam = #Null)
   ScintillaSendMessage((Gadget), (Message), (Param), (lParam))
@@ -3040,16 +3049,25 @@ Procedure Sci_AdjustView_(Gadget.i)
 EndProcedure
 
 Procedure.s Sci_GetRangeText_(Gadget.i, StartPos.i, EndPos.i)
-  Protected Buffer.s
+  Protected Result.s
   If (EndPos > StartPos)
-    Buffer = Space(2*(EndPos - StartPos))
-    Protected TR.TextRange
-    TR\chrg\cpMin = StartPos
-    TR\chrg\cpMax = EndPos
-    TR\lpstrText  = @Buffer
-    Sci_GetTextRange(Gadget, @TR)
+    Protected Bytes.i = EndPos - StartPos
+    Protected *Buffer = AllocateMemory(Bytes + 1)
+    If (*Buffer)
+      Protected TR.TextRange
+      TR\chrg\cpMin = StartPos
+      TR\chrg\cpMax = EndPos
+      TR\lpstrText  = *Buffer
+      Sci_GetTextRange(Gadget, @TR) ; writes 0-terminator byte
+      CompilerIf (#PB_Compiler_Unicode)
+        Result = PeekS(*Buffer, Bytes, #PB_UTF8 | #PB_ByteLength)
+      CompilerElse
+        Result = PeekS(*Buffer, Bytes, #PB_Ascii)
+      CompilerEndIf
+      FreeMemory(*Buffer)
+    EndIf
   EndIf
-  ProcedureReturn (_Sci_PeekUTF8(@Buffer))
+  ProcedureReturn (Result)
 EndProcedure
 
 Macro Sci_DeleteForward_(Gadget)
@@ -3086,84 +3104,82 @@ Procedure.i Sci_IsWord_(Gadget.i, Text.s)
   ProcedureReturn (Result)
 EndProcedure
 
+Macro Sci_FindForward_(Gadget, Query, Flags = 0)
+  Sci_Find_((Gadget), Query, (Flags) | #SB_Find_Forward)
+EndMacro
+
+Macro Sci_FindBackward_(Gadget, Query, Flags = 0)
+  Sci_Find_((Gadget), Query, (Flags) | #SB_Find_Backward)
+EndMacro
+
 Procedure.i Sci_Find_(Gadget.i, Query.s, Flags.i = #SB_Find_Default)
-  Protected Result.i = 0
-  If (IsGadget(Gadget) And Query)
-    
-    If (Flags = #PB_Default)
-      Flags = #SB_Find_Default
-    EndIf
-    
-    Protected Buffer.s = Sci_GetText(Gadget)
-    If (Not (Flags & #SB_Find_MatchCase))
-      Query  = LCase(Query)
-      Buffer = LCase(Buffer)
-    EndIf
-    Protected QueryLen.i = Len(Query)
-    
-    If (Flags & #SB_Find_WholeWord)
-      If (Not Sci_IsWord_(Gadget, Query))
-        Flags & ~#SB_Find_WholeWord
-      EndIf
-    EndIf
-    
+  Protected Result.i = 0 ; Return 0 for Not Found, (1 + StartPos) for Found
+  If (Query)
     Protected SelStart.i = Sci_GetSelectionStart(Gadget)
-    Protected SelEnd.i   = Sci_GetSelectionEnd(Gadget)
-    Protected Pos.i
+    Protected SelStop.i  = Sci_GetSelectionEnd(Gadget)
+    Protected DocLen.i   = Sci_GetLength(Gadget)
     
-    Protected SecondPass.i = #False
-    Protected *Cursor.CHARACTER = @Buffer + (SelStart * SizeOf(CHARACTER)) ;? This is not UTF8-safe!
-    Protected *C.CHARACTER = *Cursor
-    While (Not Result)
-      If (CompareMemoryString(*C, @Query, #PB_String_CaseSensitive, QueryLen) = #PB_String_Equal)
-        Pos = (*C - @Buffer)/SizeOf(CHARACTER)
-        If (SecondPass Or (SelStart <> Pos) Or (SelEnd <> (Pos + QueryLen)))
-          Result = 1 + Pos
-          If (Flags & #SB_Find_WholeWord)
-            If (Sci_WordStartPosition(Gadget, Pos, #True) <> Pos)
-              Result = 0
-            ElseIf (Sci_WordEndPosition(Gadget, Pos, #True) <> (Pos + QueryLen))
-              Result = 0
-            EndIf
-          EndIf
-          If (Result)
-            Break
-          EndIf
-        EndIf
-      EndIf
+    Protected SciFlags.i = #Null
+    If (Flags & #SB_Find_MatchCase)
+      SciFlags | #SCFIND_MATCHCASE
+    EndIf
+    If (Flags & #SB_Find_WholeWord)
+      SciFlags | #SCFIND_WHOLEWORD
+    EndIf
+    Sci_SetSearchFlags(Gadget, SciFlags)
+    
+    Protected Wrap.i = #False
+    Protected Offset.i = 0
+    While (#True)
       If (Flags & #SB_Find_Backward)
-        If (SecondPass And (*C <= *Cursor))
-          Break
-        ElseIf (*C = @Buffer)
-          If (SecondPass Or (Flags & #SB_Find_NoWrap))
-            Break
-          Else
-            SecondPass = #True
-            *C = @Buffer + Sci_GetLength(Gadget) * SizeOf(CHARACTER)
-          EndIf
+        If (Wrap)
+          Sci_SetTargetStart(Gadget, DocLen)
+          Sci_SetTargetEnd(Gadget, 0)
         Else
-          *C - SizeOf(CHARACTER)
+          Sci_SetTargetStart(Gadget, SelStart + Offset)
+          Sci_SetTargetEnd(Gadget, 0)
         EndIf
       Else
-        If (SecondPass And (*C >= *Cursor))
-          Break
-        ElseIf (*C\c = #NUL)
-          If (SecondPass Or (Flags & #SB_Find_NoWrap))
+        If (Wrap)
+          Sci_SetTargetStart(Gadget, 0)
+          Sci_SetTargetEnd(Gadget, DocLen)
+        Else
+          Sci_SetTargetStart(Gadget, SelStart + Offset)
+          Sci_SetTargetEnd(Gadget, DocLen)
+        EndIf
+      EndIf
+      
+      If (Sci_SearchInTarget(Gadget, Query) >= 0)
+        If ((Sci_GetTargetStart(Gadget) = SelStart) And (Sci_GetTargetEnd(Gadget) = SelStop))
+          If (Wrap)
+            Result = 1 + Sci_GetTargetStart(Gadget)
             Break
           Else
-            SecondPass = #True
-            *C = @Buffer
+            If (Flags & #SB_Find_Backward)
+              Offset - 1
+            Else
+              Offset + 1
+            EndIf
+            ; Search again...
           EndIf
         Else
-          *C + SizeOf(CHARACTER)
+          Sci_SetSel(Gadget, Sci_GetTargetStart(Gadget), Sci_GetTargetEnd(Gadget))
+          If (#True)
+            ;Sci_AdjustView_(Gadget)
+            Sci_ScrollRange(Gadget, Sci_GetTargetEnd(Gadget), Sci_GetTargetStart(Gadget))
+          EndIf
+          Result = 1 + Sci_GetTargetStart(Gadget)
+          Break
+        EndIf
+      Else
+        If (Wrap Or (Flags & #SB_Find_NoWrap))
+          Break
+        Else
+          Wrap = #True
+          ; Search again...
         EndIf
       EndIf
     Wend
-    
-    If (Result > 0)
-      Sci_SetSelection(Gadget, Result-1, Result-1+QueryLen)
-      Sci_AdjustView_(Gadget)
-    EndIf
     
   EndIf
   ProcedureReturn (Result)
@@ -3240,6 +3256,18 @@ Procedure.i Sci_GetSelectionBounds_(Gadget.i, *Start.INTEGER, *Stop.INTEGER)
   ProcedureReturn (*Stop\i - *Start\i)
 EndProcedure
 
+Procedure.d Sci_GetScrollYPercent_(Gadget.i)
+  Protected Result.i = 0
+  Protected nLines.i = Sci_GetLineCount(Gadget)
+  Protected VisLines.i = Sci_LinesOnScreen(Gadget)
+  If (nLines > VisLines)
+    Protected MaxScroll.i = nLines - VisLines
+    Protected TopLine.i = Sci_GetFirstVisibleLine(Gadget)
+    Result = 100.0 * TopLine / MaxScroll
+  EndIf
+  ProcedureReturn (Result)
+EndProcedure
+
 Procedure Sci_SelectLine_(Gadget.i, Line.i, IncludeIndent.i = #False)
   Protected Start.i, Stop.i
   Start = Sci_PositionFromLine(Gadget, Line)
@@ -3292,6 +3320,20 @@ Procedure Sci_SetScrollViewBackground_(Gadget.i, Color.i)
   CompilerEndIf
 EndProcedure
 
+Macro Sci_ScrollSelection_(Gadget)
+  Sci_ScrollRange((Gadget), Sci_GetSelectionEnd(Gadget), Sci_GetSelectionStart(Gadget))
+EndMacro
+
+Procedure Sci_SetScrollYPercent_(Gadget.i, Percent.d)
+  Protected nLines.i = Sci_GetLineCount(Gadget)
+  Protected VisLines.i = Sci_LinesOnScreen(Gadget)
+  If (nLines > VisLines)
+    Protected MaxScroll.i = nLines - VisLines
+    Protected TopLine.i = MaxScroll * Percent / 100.0
+    Sci_SetFirstVisibleLine(Gadget, TopLine)
+  EndIf
+EndProcedure
+
 Procedure Sci_StyleLastLine_(Gadget.i, StyleNumber.i, ExtraLines.i = 0)
   Protected n.i     = Sci_GetLineCount(Gadget)
   Protected Start.i = Sci_GetLineIndentPosition(Gadget, n-1 - ExtraLines)
@@ -3300,6 +3342,25 @@ Procedure Sci_StyleLastLine_(Gadget.i, StyleNumber.i, ExtraLines.i = 0)
     Sci_StartStyling(Gadget, Start)
     Sci_SetStyling(Gadget, Stop - Start, StyleNumber)
   EndIf
+EndProcedure
+
+Procedure.i Sci_LoadFile_(Gadget.i, File.s)
+  Sci_ClearAll(Gadget)
+  Protected FN.i = ReadFile(#PB_Any, File)
+  If (FN)
+    Sci_SetText(Gadget, ReadString(FN, #PB_File_IgnoreEOL))
+    CloseFile(FN)
+  EndIf
+  ProcedureReturn (Bool(FN))
+EndProcedure
+
+Procedure.i Sci_SaveFile_(Gadget.i, File.s)
+  Protected FN.i = CreateFile(#PB_Any, File)
+  If (FN)
+    WriteString(FN, Sci_GetText(Gadget))
+    CloseFile(FN)
+  EndIf
+  ProcedureReturn (Bool(FN))
 EndProcedure
 
 CompilerEndIf
