@@ -14,6 +14,8 @@
 ; |        .14 . Added SetJSONObjectEx(), SetJSONArrayEx(), MainJSONNode()
 ; |        .27 . Added SelectJSONMember(*Object, Index)
 ; |     .08.09 . Added RandomJSONMember(), RandomJSONElement()
+; | 2019.06.03 . Fixed CopyJSONNode() when it contains empty arrays
+; | 2019.06.19 . Added JSONBooleanFromPath()
 
 CompilerIf (Not Defined(_JSON_Helper_Included, #PB_Constant))
 #_JSON_Helper_Included = #True
@@ -29,7 +31,7 @@ CompilerEndIf
 
 ; Include Version
 
-#JSON_IncludeVersion = 20180809
+#JSON_IncludeVersion = 20190619
 
 ; JSON Value Types
 #JSON_Array   = #PB_JSON_Array
@@ -222,6 +224,15 @@ Procedure.i JSONIntegerFromPath(*Parent, Path.s)
   ProcedureReturn (Result)
 EndProcedure
 
+Procedure.i JSONBooleanFromPath(*Parent, Path.s)
+  Protected Result.i = 0
+  Protected *Node = JSONNodeFromPath(*Parent, Path, #JSON_Boolean)
+  If (*Node)
+    Result = GetJSONBoolean(*Node)
+  EndIf
+  ProcedureReturn (Result)
+EndProcedure
+
 Procedure.f JSONFloatFromPath(*Parent, Path.s)
   Protected Result.f = 0.0
   Protected *Node = JSONNodeFromPath(*Parent, Path, #JSON_Number)
@@ -396,13 +407,17 @@ Procedure.i CopyJSONNode(*Src, *Dest, Key.s = "")
           *Dest = SetJSONArray(*Dest)
           If (*Dest)
             Protected n.i = JSONArraySize(*Src)
-            Protected i.i
-            For i = 0 To n-1
-              Result = CopyJSONNode(GetJSONElement(*Src, i), AddJSONElement(*Dest, i))
-              If (Not Result)
-                Break
-              EndIf
-            Next i
+            If (n > 0)
+              Protected i.i
+              For i = 0 To n-1
+                Result = CopyJSONNode(GetJSONElement(*Src, i), AddJSONElement(*Dest, i))
+                If (Not Result)
+                  Break
+                EndIf
+              Next i
+            Else
+              Result = #True
+            EndIf
           EndIf
       EndSelect
     EndIf
