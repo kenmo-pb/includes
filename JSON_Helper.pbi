@@ -15,7 +15,8 @@
 ; |        .27 . Added SelectJSONMember(*Object, Index)
 ; |     .08.09 . Added RandomJSONMember(), RandomJSONElement()
 ; | 2019.06.03 . Fixed CopyJSONNode() when it contains empty arrays
-; | 2019.06.19 . Added JSONBooleanFromPath()
+; |        .19 . Added JSONBooleanFromPath()
+; |     .07.01 . Add "[]" shorthand for indexing from path, LoadJSONEx()
 
 CompilerIf (Not Defined(_JSON_Helper_Included, #PB_Constant))
 #_JSON_Helper_Included = #True
@@ -31,7 +32,7 @@ CompilerEndIf
 
 ; Include Version
 
-#JSON_IncludeVersion = 20190619
+#JSON_IncludeVersion = 20190701
 
 ; JSON Value Types
 #JSON_Array   = #PB_JSON_Array
@@ -142,9 +143,14 @@ EndProcedure
 ;-
 ;- - Traversing by Path
 
-Procedure.i JSONNodeFromPath(*Parent, Path.s, Type.i = #PB_Any)
+Procedure.i JSONNodeFromPath(*Parent, Path.s, Type.i = #PB_Any, i1.i = 0, i2.i = 0, i3.i = 0)
   Protected *Node = *Parent
   If (*Parent)
+    If (FindString(Path, "[]"))
+      Path = ReplaceString(Path, "[]", "[" + Str(i1) + "]", #Null, 1, 1)
+      Path = ReplaceString(Path, "[]", "[" + Str(i2) + "]", #Null, 1, 1)
+      Path = ReplaceString(Path, "[]", "[" + Str(i3) + "]", #Null, 1, 1)
+    EndIf
     Protected Name.s
     Protected *Start.CHARACTER = @Path
     Protected *C.CHARACTER = *Start
@@ -215,57 +221,57 @@ Procedure.i JSONNodeFromPath(*Parent, Path.s, Type.i = #PB_Any)
   ProcedureReturn (*Node)
 EndProcedure
 
-Procedure.i JSONIntegerFromPath(*Parent, Path.s)
+Procedure.i JSONIntegerFromPath(*Parent, Path.s, i1.i = 0, i2.i = 0, i3.i = 0)
   Protected Result.i = 0
-  Protected *Node = JSONNodeFromPath(*Parent, Path, #JSON_Number)
+  Protected *Node = JSONNodeFromPath(*Parent, Path, #JSON_Number, i1, i2, i3)
   If (*Node)
     Result = GetJSONInteger(*Node)
   EndIf
   ProcedureReturn (Result)
 EndProcedure
 
-Procedure.i JSONBooleanFromPath(*Parent, Path.s)
+Procedure.i JSONBooleanFromPath(*Parent, Path.s, i1.i = 0, i2.i = 0, i3.i = 0)
   Protected Result.i = 0
-  Protected *Node = JSONNodeFromPath(*Parent, Path, #JSON_Boolean)
+  Protected *Node = JSONNodeFromPath(*Parent, Path, #JSON_Boolean, i1, i2, i3)
   If (*Node)
     Result = GetJSONBoolean(*Node)
   EndIf
   ProcedureReturn (Result)
 EndProcedure
 
-Procedure.f JSONFloatFromPath(*Parent, Path.s)
+Procedure.f JSONFloatFromPath(*Parent, Path.s, i1.i = 0, i2.i = 0, i3.i = 0)
   Protected Result.f = 0.0
-  Protected *Node = JSONNodeFromPath(*Parent, Path, #JSON_Number)
+  Protected *Node = JSONNodeFromPath(*Parent, Path, #JSON_Number, i1, i2, i3)
   If (*Node)
     Result = GetJSONFloat(*Node)
   EndIf
   ProcedureReturn (Result)
 EndProcedure
 
-Procedure.d JSONDoubleFromPath(*Parent, Path.s)
+Procedure.d JSONDoubleFromPath(*Parent, Path.s, i1.i = 0, i2.i = 0, i3.i = 0)
   Protected Result.d = 0.0
-  Protected *Node = JSONNodeFromPath(*Parent, Path, #JSON_Number)
+  Protected *Node = JSONNodeFromPath(*Parent, Path, #JSON_Number, i1, i2, i3)
   If (*Node)
     Result = GetJSONDouble(*Node)
   EndIf
   ProcedureReturn (Result)
 EndProcedure
 
-Procedure.s JSONStringFromPath(*Parent, Path.s)
+Procedure.s JSONStringFromPath(*Parent, Path.s, i1.i = 0, i2.i = 0, i3.i = 0)
   Protected Result.s = ""
-  Protected *Node = JSONNodeFromPath(*Parent, Path, #JSON_String)
+  Protected *Node = JSONNodeFromPath(*Parent, Path, #JSON_String, i1, i2, i3)
   If (*Node)
     Result = GetJSONString(*Node)
   EndIf
   ProcedureReturn (Result)
 EndProcedure
 
-Procedure.i JSONObjectFromPath(*Parent, Path.s)
-  ProcedureReturn (JSONNodeFromPath(*Parent, Path, #JSON_Object))
+Procedure.i JSONObjectFromPath(*Parent, Path.s, i1.i = 0, i2.i = 0, i3.i = 0)
+  ProcedureReturn (JSONNodeFromPath(*Parent, Path, #JSON_Object, i1, i2, i3))
 EndProcedure
 
-Procedure.i JSONArrayFromPath(*Parent, Path.s)
-  ProcedureReturn (JSONNodeFromPath(*Parent, Path, #JSON_Array))
+Procedure.i JSONArrayFromPath(*Parent, Path.s, i1.i = 0, i2.i = 0, i3.i = 0)
+  ProcedureReturn (JSONNodeFromPath(*Parent, Path, #JSON_Array, i1, i2, i3))
 EndProcedure
 
 ;-
@@ -443,6 +449,27 @@ EndProcedure
 
 ;-
 ;- - Compose String Output
+
+Procedure.s JSONTypeStr(*JSONValue)
+  Protected Result.s
+  If (*JSONValue)
+    Select (JSONType(*JSONValue))
+      Case #JSON_Array
+        Result = "Array"
+      Case #JSON_Boolean
+        Result = "Boolean"
+      Case #JSON_Null
+        Result = "Null"
+      Case #JSON_Number
+        Result = "Number"
+      Case #JSON_Object
+        Result = "Object"
+      Case #JSON_String
+        Result = "String"
+    EndSelect
+  EndIf
+  ProcedureReturn (Result)
+EndProcedure
 
 Macro ComposeJSONPretty(JSON)
   ComposeJSON((JSON), #PB_JSON_PrettyPrint)
@@ -654,6 +681,17 @@ EndProcedure
 
 Procedure.i ParseJSONEx(JSON.i, Input.s, Flags.i = #Null)
   ProcedureReturn (ParseJSON(JSON, NormalizeJSON(Input), Flags))
+EndProcedure
+
+Procedure.i LoadJSONEx(JSON.i, File.s, Flags.i = #Null)
+  Protected Result.i = #Null
+  Protected FID.i = ReadFile(#PB_Any, File)
+  If (FID)
+    Protected Raw.s = ReadString(FID, #PB_File_IgnoreEOL | #PB_UTF8)
+    CloseFile(FID)
+    ProcedureReturn (ParseJSONEx(JSON, Raw, Flags))
+  EndIf
+  ProcedureReturn (Result)
 EndProcedure
 
 
