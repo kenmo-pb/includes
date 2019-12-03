@@ -18,6 +18,10 @@ A set of encoder/decoder/helper functions to improve upon (or replace) PB's Base
 + ASCII/Unicode safe
 + Demo included
 
+## [CanvasDrag.pbi](CanvasDrag.pbi)
+Helper functions to handle CanvasGadget events and simplify mouse dragging, selection, panning, etc.
++ [WindowFromGadget.pbi](WindowFromGadget.pbi) is also required
+
 ## [CocoaHelper.pbi](CocoaHelper.pbi)
 A few helper functions for dealing with Cocoa objects.
 + Mac only (compiles but has no effect on other OS)
@@ -244,6 +248,11 @@ Gives you basic access and control of Winamp's playback status
 **Note**: This is for controlling Winamp from an external program, not for writing Winamp plugin DLLs
 + Windows only
 + ASCII/Unicode safe
+
+## [WindowFromGadget.pbi](WindowFromGadget.pbi)
+Provides helpful functions for custom gadget modules: `GetWindowFromID()`, `GetWindowFromGadget()`, `GetBuildWindow()`
++ Fully implemented on Windows, partially on other OS
++ Demo included
 
 ## [XML_Helper.pbi](XML_Helper.pbi)
 Handy procedures, macros, and constants for simplifying XML code, using PB's XML library.
