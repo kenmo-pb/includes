@@ -230,6 +230,8 @@ CompilerIf (#PB_Compiler_Unicode)
   #Ascii      = #False
   #CharSize   =  2
   ;
+  #PB_Compiler_ASCII = #False
+  ;
   #StringMode     = #PB_Unicode
   #StringModeName = "Unicode"
   #StringFileMode = #PB_UTF8
@@ -244,6 +246,8 @@ CompilerElse
   #Ascii      = #True
   #Unicode    = #False
   #CharSize   =  1
+  ;
+  #PB_Compiler_ASCII = #True
   ;
   #StringMode     = #PB_Ascii
   #StringModeName = "ASCII"

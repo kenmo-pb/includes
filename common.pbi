@@ -114,6 +114,10 @@ EndEnumeration
 #SecondsPerDay    = #SecondsPerHour   * #HoursPerDay
 #MinutesPerDay    = #MinutesPerHour   * #HoursPerDay
 
+#BytesPerKiB = 1024
+#BytesPerMiB = 1024 * 1024
+#BytesPerGiB = 1024 * 1024 * 1024
+
 #Midnight =  0
 #Midday   =  12
 #Noon     = #Midday
@@ -317,6 +321,10 @@ Macro PasswordRequester(Title, Message, DefaultString = "", Flags = #Null)
   InputRequester(Title, Message, DefaultString, (Flags)|#PB_InputRequester_Password)
 EndMacro
 
+Macro IsVKPressed(_VK)
+  (Bool(GetAsyncKeyState_(_VK) & $8000))
+EndMacro
+
 ;-
 ;- Macros - Compiler Info
 
@@ -351,8 +359,24 @@ Macro DebugProc()
   Debug #PB_Compiler_Procedure + "()"
 EndMacro
 
+Macro DebugImage(_Image)
+  ShowLibraryViewer("image", (_Image))
+  CallDebugger
+EndMacro
+
 Macro Halt()
   CallDebugger
+EndMacro
+
+;-
+;- Macros - Windows
+
+Macro PostClose(Window = -1)
+  PostEvent(#PB_Event_CloseWindow, (Window), #Null)
+EndMacro
+
+Macro ShowWindow(Window)
+  HideWindow((Window), #False)
 EndMacro
 
 ;-
@@ -670,6 +694,14 @@ Procedure.s YesNo(Boolean.i)
   EndIf
 EndProcedure
 
+Procedure.s AAn(Word.s, Suffix.s = "")
+  Select Asc(Word)
+    Case 'a', 'e', 'i', 'o', 'u', 'A', 'E', 'I', 'O', 'U'
+      ProcedureReturn ("An" + Suffix)
+  EndSelect
+  ProcedureReturn ("A" + Suffix)
+EndProcedure
+
 Procedure.i MinI(x.i, y.i)
   If (x < y)
     ProcedureReturn (x)
@@ -679,6 +711,22 @@ Procedure.i MinI(x.i, y.i)
 EndProcedure
 
 Procedure.i MaxI(x.i, y.i)
+  If (x > y)
+    ProcedureReturn (x)
+  Else
+    ProcedureReturn (y)
+  EndIf
+EndProcedure
+
+Procedure.d MinD(x.d, y.d)
+  If (x < y)
+    ProcedureReturn (x)
+  Else
+    ProcedureReturn (y)
+  EndIf
+EndProcedure
+
+Procedure.d MaxD(x.d, y.d)
   If (x > y)
     ProcedureReturn (x)
   Else
@@ -797,6 +845,35 @@ Procedure.s RFCDate(Date.i, IsLocal.i = #False)
   ProcedureReturn (Result)
 EndProcedure
 
+Procedure.s TimeStr(Seconds.i, TrimLeadZero.i = #False)
+  Protected Result.s
+  Protected i.i
+  i = Seconds % 60
+  Result = RSet(Str(i), 2, "0")
+  i = (Seconds / 60) % 60
+  Result = RSet(Str(i), 2, "0") + ":" + Result
+  i = (Seconds / 3600)
+  If (i > 0)
+    Result = Str(i) + ":" + Result
+  EndIf
+  If (TrimLeadZero)
+    Result = LTrim(Result, "0")
+  EndIf
+  ProcedureReturn (Result)
+EndProcedure
+
+Procedure.s TimeStrMS(Milliseconds.i, TrimLeadZero.i = #False)
+  Protected Result.s
+  Protected i.i
+  i = Milliseconds % 1000
+  Result = RSet(Str(i), 3, "0")
+  Result = TimeStr(Milliseconds / 1000, #False) + "." + Result
+  If (TrimLeadZero)
+    Result = LTrim(Result, "0")
+  EndIf
+  ProcedureReturn (Result)
+EndProcedure
+
 
 ;-
 ;- Procedures - Strings
@@ -867,7 +944,7 @@ Procedure.s UnescapeHTML(HTMLText.s)
     ; 12345678
     If (i And j)
       If (j - i <= 7)
-        Term = Mid(HTMLText, i + 1, j - i - 1)
+        Term = RemoveString(Mid(HTMLText, i + 1, j - i - 1), "#")
         ;? handle UTF-16 chars?
         Select (Asc(Term))
           Case 'x', 'X'
@@ -897,6 +974,50 @@ Procedure.s ReplaceVariations(String.s, StringToFind.s, StringToReplace.s)
     String = ReplaceString(String, StringToFind, StringToReplace, #PB_String_NoCase)
   EndIf
   ProcedureReturn (String)
+EndProcedure
+
+Procedure.s Proper(Text.s, Multiword.i = #False, IgnoreMinorWords.i = #False, ForceLower.i = #False, FixMacNames.i = #False)
+  Protected Result.s
+  If (ForceLower)
+    Text = LCase(Text)
+  EndIf
+  If (Multiword)
+    Protected N.i = 1 + CountString(Text, " ")
+    Protected i.i
+    Protected Term.s
+    For i = 1 To N
+      Term = StringField(Text, i, " ")
+      If ((IgnoreMinorWords) And (i > 1))
+        Select LCase(Term)
+          Case "is", "the", "of", "a", "an", "on", "in", "and", "or", "to"
+            ;
+          Default
+            Term = UCase(Left(Term, 1)) + Mid(Term, 2)
+        EndSelect
+      Else
+        Term = UCase(Left(Term, 1)) + Mid(Term, 2)
+      EndIf
+      If (FixMacNames)
+        If (LCase(Left(Term, 2)) = "mc")
+          Term = Left(Term, 2) + UCase(Mid(Term, 3, 1)) + Mid(Term, 4)
+        ElseIf (LCase(Left(Term, 3)) = "mac")
+          Term = Left(Term, 3) + UCase(Mid(Term, 4, 1)) + Mid(Term, 5)
+        EndIf
+      EndIf
+      Result + " " + Term
+    Next i
+    Result = Mid(Result, 2)
+  Else
+    Result = UCase(Left(Text, 1)) + Mid(Text, 2)
+    If (FixMacNames)
+      If (LCase(Left(Result, 2)) = "mc")
+        Result = Left(Result, 2) + UCase(Mid(Result, 3, 1)) + Mid(Result, 4)
+      ElseIf (LCase(Left(Result, 3)) = "mac")
+        Result = Left(Result, 3) + UCase(Mid(Result, 4, 1)) + Mid(Result, 5)
+      EndIf
+    EndIf
+  EndIf
+  ProcedureReturn (Result)
 EndProcedure
 
 Procedure.s QuoteIfSpaces(Input.s, DontQuoteEmpty.i = #False)
@@ -1151,6 +1272,15 @@ Procedure.i FindOccurrence(String.s, StringToFind.s, Occurrence.i, Mode.i = 0)
   ProcedureReturn (Result)
 EndProcedure
 
+Procedure.s Before(String.s, StringToFind.s, Occurrence.i = 1)
+  Protected Result.s
+  Protected i.i = FindOccurrence(String, StringToFind, Occurrence)
+  If (i)
+    Result = Left(String, i-1)
+  EndIf
+  ProcedureReturn (Result)
+EndProcedure
+
 Procedure.s After(String.s, StringToFind.s, Occurrence.i = 1)
   Protected Result.s
   Protected i.i = FindOccurrence(String, StringToFind, Occurrence)
@@ -1297,6 +1427,37 @@ EndProcedure
 
 ;-
 ;- Procedures - Filesystem
+
+Procedure.i CompatibleExtensions(Ext1.s, Ext2.s)
+  Protected Result.i = #False
+  Ext1 = LCase(Ext1)
+  Ext2 = LCase(Ext2)
+  Result = Bool(Ext1 = Ext2)
+  
+  If (Not Result)
+    Dim Type.i(2-1)
+    Protected i.i, St.s
+    For i = 0 To 1
+      If (i = 0)
+        St = Ext1
+      Else
+        St = Ext2
+      EndIf
+      Select (St)
+        Case "jpg", "jpeg"
+          Type(i) = 1
+        Case "tif", "tiff"
+          Type(i) = 2
+        Case "htm", "html"
+          Type(i) = 3
+        Default
+          Type(i) = 0
+      EndSelect
+    Next i
+    Result = Bool((Type(0) > 0) And (Type(0) = Type(1)))
+  EndIf
+  ProcedureReturn (Result)
+EndProcedure
 
 Procedure.i IsDirectoryEmpty(Directory.s)
   Protected Result.i = -1
@@ -1469,7 +1630,7 @@ Procedure.i CreateDirectoryFull(Path.s)
   ProcedureReturn (#False)
 EndProcedure
 
-Procedure.s FindFirstFile(Directory.s, Pattern.s)
+Procedure.s FindFirstFile_ReorderedParams(Pattern.s, Directory.s = "")
   Protected Result.s
   If (Directory = "")
     Directory = GetCurrentDirectory()
@@ -1951,6 +2112,7 @@ EndProcedure
 ;-
 ;- Procedures - Network
 
+CompilerIf (Not Defined(LaunchURL, #PB_Procedure))
 Procedure LaunchURL(URL.s, NoPrefix.i = #False)
   If (URL)
     If (Not NoPrefix) 
@@ -1968,6 +2130,7 @@ Procedure LaunchURL(URL.s, NoPrefix.i = #False)
     CompilerEndSelect
   EndIf
 EndProcedure
+CompilerEndIf
 
 Procedure.s ReceiveHTTPString(URL.s, UserAgent.s = "", Flags.i = #Null)
   If (URL)
@@ -1984,6 +2147,24 @@ Procedure.s ReceiveHTTPString(URL.s, UserAgent.s = "", Flags.i = #Null)
       CompilerEndIf
       FreeMemory(*Buffer)
       ProcedureReturn (HTML)
+    EndIf
+  EndIf
+EndProcedure
+
+Procedure.i ReceiveHTTPInt(URL.s, UserAgent.s = "", Flags.i = #Null)
+  ProcedureReturn (Val(ReceiveHTTPString(URL, UserAgent, Flags)))
+EndProcedure
+
+Procedure.i ReceiveHTTPJSON(JSON.i, URL.s, UserAgent.s = "", Flags.i = #Null, JSONFlags.i = #Null)
+  If (URL)
+    If (UserAgent = "")
+      UserAgent = #ImproveUserAgent + "." + Str(Random(999999))
+    EndIf
+    Protected *Buffer = ReceiveHTTPMemory(URL, Flags, UserAgent)
+    If (*Buffer)
+      Protected Result.i = CatchJSON(JSON, *Buffer, MemorySize(*Buffer), JSONFlags)
+      FreeMemory(*Buffer)
+      ProcedureReturn (Result)
     EndIf
   EndIf
 EndProcedure
