@@ -14,6 +14,9 @@
 ; |                fixed duplicate extension bug such as (*.txt)(*.txt),
 ; |                replaced "Guess" params with a Pattern of -1
 ; | 2017.08.11 . Trim trailing periods on Windows save filenames
+; | 2019.11.11 . Added PrepareFileRequesterEx() and related
+; | 2019.11.19 . Improved Prepare by moving temp Requester to main thread
+; | 2020-02-22 . Replaced dummy-requester Prepare method with path modification
 
 ;-
 CompilerIf (Not Defined(__RequesterEx_Included, #PB_Constant))
@@ -52,6 +55,20 @@ Macro __RequesterEx_PS()
 EndMacro
 CompilerEndIf
 
+CompilerIf ((#PB_Compiler_OS = #PB_OS_Windows) And (#True))
+Global __RequesterEx_Prepared.i = #False
+Macro __RequesterEx_PreparePathVar(PathVar)
+  If (Not __RequesterEx_Prepared)
+    __RequesterEx_Prepared = #True
+    PathVar = GetPathPart(PathVar) + Str(Date()) + "\..\" + GetFilePart(PathVar)
+  EndIf
+EndMacro
+CompilerElse
+Macro __RequesterEx_PreparePathVar(PathVar)
+  ;
+EndMacro
+CompilerEndIf
+
 
 
 
@@ -61,7 +78,6 @@ CompilerEndIf
 Threaded __RequesterEx_SelectedPattern.i = 0
 Threaded __RequesterEx_FirstFile.s       = ""
 Threaded __RequesterEx_LastFolder.s      = ""
-
 
 
 
@@ -143,6 +159,8 @@ EndProcedure
 
 
 
+
+
 ;-
 ;- Macros (Public)
 
@@ -203,6 +221,8 @@ Procedure.s SaveFileRequesterEx(Title.s = "Save", DefaultFile.s = "", Pattern.s 
     PatternPosition = __RequesterEx_GuessPattern(PatternEx, DefFile, PatternPosition)
   EndIf
   
+  __RequesterEx_PreparePathVar(DefaultFile)
+  
   Result = SaveFileRequester(Title, DefaultFile, PatternEx, PatternPosition)
   If (Result)
     __RequesterEx_LastFolder = GetPathPart(Result)
@@ -258,6 +278,8 @@ Procedure.s OpenFileRequesterEx(Title.s = "Open", DefaultFile.s = "", Pattern.s 
   If (DefFile And Guess)
     PatternPosition = __RequesterEx_GuessPattern(PatternEx, DefFile, PatternPosition)
   EndIf
+  
+  __RequesterEx_PreparePathVar(DefaultFile)
   
   Result = OpenFileRequester(Title, DefaultFile, PatternEx, PatternPosition, Bool(MultiSelect) * #PB_Requester_MultiSelection)
   __RequesterEx_FirstFile = Result
