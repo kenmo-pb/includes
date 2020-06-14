@@ -142,6 +142,11 @@ EndProcedure
 
 Procedure.i OpenFTPFromFile(FTP.i, File.s, Group.s = "")
   Protected Result.i = #Null
+  CompilerIf (#PB_Compiler_Debugger)
+    If (ExaminePreferenceGroups())
+      DebuggerWarning(#PB_Compiler_Procedure + " uses OpenPreferences(), but you already have preferences open!")
+    EndIf
+  CompilerEndIf
   If (OpenPreferences(File))
     If ((Group = "") Or (PreferenceGroup(Group)))
       Protected RemoveChar.s = Left(ReadPreferenceString("rc", ""), 1)
