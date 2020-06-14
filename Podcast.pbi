@@ -9,9 +9,11 @@
 ; | 2018-06-15 . Added Reverse episode order option
 ; | 2018-06-25 . Added per-episode 'Link' attribute
 ; | 2018-07-14 . Cleaned up demo
+; | 2020-02-23 . Escape single and double quote characters
+; | 2020-04-04 . Added Bytes property to items
 
 ; TODO
-; add more possible "item" attributes
+; 
 
 CompilerIf (Not Defined(__Podcast_Included, #PB_Constant))
 #__Podcast_Included = #True
@@ -32,6 +34,7 @@ Structure PODCASTITEM
   UTCDate.i
   Desc.s
   Seconds.i
+  Bytes.i
   Image.s
 EndStructure
 
@@ -77,6 +80,8 @@ Procedure.s PodcastEscape(Text.s)
   Text = ReplaceString(Text, "&", "&amp;")
   Text = ReplaceString(Text, "<", "&lt;")
   Text = ReplaceString(Text, ">", "&gt;")
+  Text = ReplaceString(Text, "'", "&apos;")
+  Text = ReplaceString(Text, #DQUOTE$, "&quot;")
   ProcedureReturn (Text)
 EndProcedure
 
@@ -137,13 +142,21 @@ Procedure.s ComposePodcast(*Pod.PODCAST)
       EndIf
       Result + Space(3 * Indent) + ReplaceString("<guid>$1</guid>", "$1", PodcastEscape(*Pod\Item()\GUID)) + #LF$
       Result + Space(3 * Indent) + ReplaceString("<description>$1</description>", "$1", PodcastEscape(*Pod\Item()\Desc)) + #LF$
-      Result + Space(3 * Indent) + ReplaceString(ReplaceString("<enclosure url='$1' length='$2' type='audio/mpeg' />", "$1", PodcastEscape(*Pod\Item()\GUID)), "$2", Str(1024*1024*50)) + #LF$
+      Protected Bytes.i = *Pod\Item()\Bytes
+      If (Bytes <= 0)
+        Bytes = 50 * 1024 * 1024
+      EndIf
+      Result + Space(3 * Indent) + ReplaceString(ReplaceString("<enclosure url='$1' length='$2' type='audio/mpeg' />", "$1", PodcastEscape(*Pod\Item()\GUID)), "$2", Str(Bytes)) + #LF$
       Result + Space(3 * Indent) + "<category>Music</category>" + #LF$
       If (*Pod\Item()\UTCDate)
         Result + Space(3 * Indent) + ReplaceString("<pubDate>$1</pubDate>", "$1", PodcastDateString(*Pod\Item()\UTCDate)) + #LF$
       Else
         Result + Space(3 * Indent) + ReplaceString("<pubDate>$1</pubDate>", "$1", PodcastDateString(DefDate)) + #LF$
-        DefDate + 60
+        If (*Pod\Reverse)
+          DefDate - 60
+        Else
+          DefDate + 60
+        EndIf
       EndIf
       Result + Space(3 * Indent) + ReplaceString("<itunes:author>$1</itunes:author>", "$1", PodcastEscape(*Pod\Author)) + #LF$
       Result + Space(3 * Indent) + "<itunes:explicit>No</itunes:explicit>" + #LF$
@@ -247,7 +260,7 @@ Procedure SetPodcastImage(*Pod.PODCAST, Image.s)
   EndIf
 EndProcedure
 
-Procedure AddPodcastItem(*Pod.PODCAST, GUID.s, Title.s = "", UTCDate.i = 0, Desc.s = "", Seconds.i = 0, Image.s = "", Link.s = "")
+Procedure AddPodcastItem(*Pod.PODCAST, GUID.s, Title.s = "", UTCDate.i = 0, Desc.s = "", Seconds.i = 0, Image.s = "", Link.s = "", Bytes.i = 0)
   If (*Pod)
     AddElement(*Pod\Item())
     *Pod\Item()\GUID = GUID
@@ -257,6 +270,7 @@ Procedure AddPodcastItem(*Pod.PODCAST, GUID.s, Title.s = "", UTCDate.i = 0, Desc
     *Pod\Item()\Seconds = Seconds
     *Pod\Item()\Image = Image
     *Pod\Item()\Link = Link
+    *Pod\Item()\Bytes = Bytes
   EndIf
 EndProcedure
 
