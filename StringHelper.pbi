@@ -1,4 +1,4 @@
-; +------------------+
+﻿; +------------------+
 ; | StringHelper.pbi |
 ; +------------------+
 ; | 2015.02.17 . Creation (PureBasic 5.31)
@@ -573,6 +573,7 @@ Procedure.i ReadFileToList(File.s, List StringList.s(), Format.i = #PB_UTF8)
   ClearList(StringList())
   Protected FN.i = ReadFile(#PB_Any, File, Format)
   If (FN)
+    ReadStringFormat(FN)
     Protected Line.s
     While (Not Eof(FN))
       Line = Trim(ReadString(FN))
@@ -584,6 +585,38 @@ Procedure.i ReadFileToList(File.s, List StringList.s(), Format.i = #PB_UTF8)
     CloseFile(FN)
   EndIf
   ProcedureReturn (ListSize(StringList()))
+EndProcedure
+
+Procedure.i ReadFileToMap(File.s, Map StringMap.s(), Format.i = #PB_UTF8)
+  ClearMap(StringMap())
+  Protected FN.i = ReadFile(#PB_Any, File, Format)
+  If (FN)
+    ReadStringFormat(FN)
+    Protected Line.s
+    While (Not Eof(FN))
+      Line = Trim(ReadString(FN))
+      If (Line)
+        Protected j.i = FindString(Line, "=")
+        If (j)
+          AddMapElement(StringMap(), Left(Line, j-1))
+          StringMap() = Mid(Line, j+1)
+        EndIf
+      EndIf
+    Wend
+    CloseFile(FN)
+  EndIf
+  ProcedureReturn (MapSize(StringMap()))
+EndProcedure
+
+Procedure.i CreateFileFromMap(File.s, Map StringMap.s())
+  Protected FN.i = CreateFile(#PB_Any, File)
+  If (FN)
+    ForEach (StringMap())
+      WriteStringN(FN, MapKey(StringMap()) + "=" + StringMap())
+    Next
+    CloseFile(FN)
+  EndIf
+  ProcedureReturn (Bool(FN))
 EndProcedure
 
 
