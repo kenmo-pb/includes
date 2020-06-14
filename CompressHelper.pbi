@@ -130,6 +130,7 @@ EndProcedure
 
 ;-
 
+CompilerIf (Not Defined(CopyMemoryToFile, #PB_Procedure))
 Procedure.i CopyMemoryToFile(*Memory, Bytes.i, File.s)
   Protected Result.i = #False
   
@@ -153,7 +154,9 @@ Procedure.i CopyMemoryToFile(*Memory, Bytes.i, File.s)
   
   ProcedureReturn (Result)
 EndProcedure
+CompilerEndIf
 
+CompilerIf (Not Defined(CopyFileToMemory, #PB_Procedure))
 Procedure.i CopyFileToMemory(File.s)
   Protected *Buffer = #Null
   
@@ -178,6 +181,7 @@ Procedure.i CopyFileToMemory(File.s)
   
   ProcedureReturn (*Buffer)
 EndProcedure
+CompilerEndIf
 
 ;-
 
