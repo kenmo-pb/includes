@@ -209,6 +209,12 @@ Many improvements to the Open/Save/Path Requesters. All parameters are made opti
 + ASCII/Unicode safe
 + Demo included
 
+## [RotateImage.pbi](RotateImage.pbi)
+Rotate images 90/180/270 degrees, pixel-perfect, using API when possible. One versatile procedure lets you rotate an image in-place, rotate to another image ID, or rotate to a new `#PB_Any` image.
++ Windows/Linux/Mac
++ ASCII/Unicode safe
++ Demo included
+
 ## [ScaleImage.pbi](ScaleImage.pbi)
 This simplifies resizing images and image files to a single function call. Options include: stretch, fit, fill, tile, center, border color, alignment, raw/smooth interpolation.
 + Windows/Linux/Mac
