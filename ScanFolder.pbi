@@ -9,6 +9,7 @@
 ; |     .08.27 . Use FileSize instead of DirectoryEntryType (for symlinks)
 ; |        .30 . Added ResetScanEntry, fixed ".." folder ignore
 ; | 2017.05.20 . Cleanup, added warning if RegexSupport is missing
+; | 2020-06-19 . Don't warn about RegEx being disabled if not trying to use it!
 
 
 CompilerIf (Not Defined(__ScanFolder_Included, #PB_Constant))
@@ -18,7 +19,7 @@ CompilerIf (#PB_Compiler_IsMainFile)
   EnableExplicit
 CompilerEndIf
 
-#ScanFolder_IncludeVersion = 20170520
+#ScanFolder_IncludeVersion = 20200619
 
 
 
@@ -317,7 +318,9 @@ Procedure.i ScanFolder(Folder.s, Flags.i = #Null, Extensions.s = "", RecurseDept
         Regex = CreateRegularExpression(#PB_Any, RegexPattern, #PB_RegularExpression_NoCase)
       EndIf
     CompilerElseIf (#PB_Compiler_Debugger)
-      Debug #PB_Compiler_Filename + " : Please define #ScanFolder_RegexSupport as #True before IncludeFile"
+      If (RegexPattern)
+        Debug #PB_Compiler_Filename + " : Please define #ScanFolder_RegexSupport as #True before IncludeFile"
+      EndIf
     CompilerEndIf
     If (Regex Or (RegexPattern = ""))
       *SF = AllocateMemory(SizeOf(_SCANFOLDER))
