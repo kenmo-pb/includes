@@ -7,6 +7,7 @@
 ; | 2018.07.07 . Moved RemoteFile formatting from QuickUpload into Upload
 ; | 2018.11.08 . Upload and Download now default to current FTP/Local dirs
 ; | 2018.11.09 . Added OpenFTPFromFile
+; | 2020-06-19 . Remove Preferences calls (only use helper File functions)
 
 ;-
 CompilerIf (Not Defined(__FTPHelper_Included, #PB_Constant))
@@ -18,6 +19,52 @@ CompilerEndIf
 
 
 
+;- Procedures (Private)
+
+Procedure.i _FTPHelper_FindGroup(FN.i, GroupName.s)
+  Protected Result.i = #False
+  FileSeek(FN, 0)
+  ReadStringFormat(FN)
+  If (GroupName)
+    GroupName = LCase("[" + Trim(GroupName) + "]")
+    While (Not Eof(FN))
+      Protected Line.s = ReadString(FN)
+      If (LCase(Trim(Line)) = GroupName)
+        Result = #True
+        Break
+      EndIf
+    Wend
+  EndIf
+  ProcedureReturn (Result)
+EndProcedure
+
+Procedure.s _FTPHelper_FindString(FN.i, Key.s, DefaultValue.s = "")
+  Protected Result.s = DefaultValue
+  Protected Location.i = Loc(FN)
+  Key = LCase(Trim(Key))
+  While (Not Eof(FN))
+    Protected Line.s = ReadString(FN)
+    If (Left(LTrim(Line), 1) = ";")
+      Continue
+    ElseIf (Left(LTrim(Line), 1) = "[")
+      Break
+    Else
+      Protected i.i = FindString(Line, "=")
+      If (i)
+        If (LCase(Trim(Left(Line, i-1))) = Key)
+          Result = Trim(Mid(Line, i+1))
+          Break
+        EndIf
+      EndIf
+    EndIf
+  Wend
+  FileSeek(FN, Location)
+  ProcedureReturn (Result)
+EndProcedure
+
+
+
+;-
 ;- Procedures (Public)
 
 Procedure.i ChangeFTPDirectory(FTP.i, Directory.s, Create.i = #False)
@@ -142,20 +189,16 @@ EndProcedure
 
 Procedure.i OpenFTPFromFile(FTP.i, File.s, Group.s = "")
   Protected Result.i = #Null
-  CompilerIf (#PB_Compiler_Debugger)
-    If (ExaminePreferenceGroups())
-      DebuggerWarning(#PB_Compiler_Procedure + " uses OpenPreferences(), but you already have preferences open!")
-    EndIf
-  CompilerEndIf
-  If (OpenPreferences(File))
-    If ((Group = "") Or (PreferenceGroup(Group)))
-      Protected RemoveChar.s = Left(ReadPreferenceString("rc", ""), 1)
-      Protected Server.s = RemoveString(ReadPreferenceString("s", ""), RemoveChar)
-      Protected User.s = RemoveString(ReadPreferenceString("u", ""), RemoveChar)
-      Protected Pass.s = RemoveString(ReadPreferenceString("p", ""), RemoveChar)
-      Protected Dir.s = RemoveString(ReadPreferenceString("d", ""), RemoveChar)
-      Protected Port.i = ReadPreferenceInteger("port", 21)
-      Protected Passive.i = Bool(ReadPreferenceInteger("passive", 1))
+  Protected FN.i = ReadFile(#PB_Any, File)
+  If (FN)
+    If ((Group = "") Or (_FTPHelper_FindGroup(FN, Group)))
+      Protected RemoveChar.s = Left(_FTPHelper_FindString(FN, "rc"), 1)
+      Protected Server.s  = RemoveString(_FTPHelper_FindString(FN, "s"), RemoveChar)
+      Protected User.s    = RemoveString(_FTPHelper_FindString(FN, "u"), RemoveChar)
+      Protected Pass.s    = RemoveString(_FTPHelper_FindString(FN, "p"), RemoveChar)
+      Protected Dir.s     = RemoveString(_FTPHelper_FindString(FN, "d"), RemoveChar)
+      Protected Port.i    = Val(_FTPHelper_FindString(FN, "port", "21"))
+      Protected Passive.i = Bool(Val(_FTPHelper_FindString(FN, "passive", "1")))
       If (FindString(Server, "://"))
         Server = StringField(Server, 2, "://")
       EndIf
@@ -181,7 +224,7 @@ Procedure.i OpenFTPFromFile(FTP.i, File.s, Group.s = "")
         EndIf
       EndIf
     EndIf
-    ClosePreferences()
+    CloseFile(FN)
   EndIf
   ProcedureReturn (Result)
 EndProcedure
