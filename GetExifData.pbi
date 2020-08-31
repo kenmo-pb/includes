@@ -3,8 +3,12 @@
 ; +--------------------+
 ; | 2019-11-22 : Creation
 ; | 2020-08-30 : Added LoadImageEXIFRotated() - requires RotateImage.pbi
+; | 2020-08-31 : Added multiple Include guard
 
 ;-
+CompilerIf (Not Defined(_GetExifData_Included, #PB_Constant))
+#_GetExifData_Included = #True
+
 CompilerIf (#PB_Compiler_IsMainFile)
   EnableExplicit
 CompilerEndIf
@@ -167,5 +171,6 @@ Select GetExifRotation(File)
     Debug "Unknown"
 EndSelect
 
+CompilerEndIf
 CompilerEndIf
 ;-
