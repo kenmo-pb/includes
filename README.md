@@ -88,6 +88,13 @@ Helper functions for handling the selected items, checked items, and item data o
 + ASCII/Unicode safe
 + Demo included
 
+## [GetExifData.pbi](GetExifData.pbi)
+Reads EXIF metadata from image files (typically JPEG). Currently, it only reads the EXIF rotation (how the image should be rotated when displayed to the user).
++ Windows/Linux/Mac
++ ASCII/Unicode safe
++ Demo included
++ **[RotateImage.pbi](RotateImage.pbi) is also required** if you use `LoadImageEXIFRotated()`
+
 ## [Hg.mod.pbi](Hg.mod.pbi)
 This is a Module for interacting with Mercurial (`Hg`) SCM. Functionality includes creating and committing repos, examining changed files, generating a diff, examining the commit log.
 + Windows only (not tested on Linux/Mac)
