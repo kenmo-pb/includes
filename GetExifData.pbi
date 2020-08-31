@@ -1,6 +1,6 @@
-﻿; +--------------------+
-; | GetExifOrientation |
-; +--------------------+
+﻿; +-------------+
+; | GetExifData |
+; +-------------+
 ; | 2019-11-22 : Creation
 ; | 2020-08-30 : Added LoadImageEXIFRotated() - requires RotateImage.pbi
 ; | 2020-08-31 : Added multiple Include guard
