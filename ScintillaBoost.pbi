@@ -21,9 +21,9 @@
 ; |     .05.23 . Added Sci_GetScrollYPercent_()
 ; |        .25 . Added Sci_SetScrollYPercent_()
 
-;   Generated 2019.05.25
+;   Generated 2021.03.16
 ;     via "ScintillaBoost_Generator.pb"
-;     in PureBasic 5.70
+;     in PureBasic 5.73
 ;     processing "ScintillaList-20141002.txt"
 
 CompilerIf (Not Defined(__ScintillaBoost_Included, #PB_Constant))
@@ -3254,6 +3254,24 @@ Procedure.i Sci_GetSelectionBounds_(Gadget.i, *Start.INTEGER, *Stop.INTEGER)
   *Start\i = Sci_GetSelectionStart(Gadget)
   *Stop\i  = Sci_GetSelectionEnd(Gadget)
   ProcedureReturn (*Stop\i - *Start\i)
+EndProcedure
+
+Procedure.i Sci_GetSelOrWordOrCursor_(Gadget.i, *Start.INTEGER, *Stop.INTEGER)
+  Protected Start.i = Sci_GetSelectionStart(Gadget)
+  Protected Stop.i  = Sci_GetSelectionEnd(Gadget)
+  If (Stop > Start) ; User selection
+    ; OK
+  Else ; No selection
+    Start = Sci_WordStartPosition(Gadget, Start, #True)
+    Stop  = Sci_WordEndPosition(Gadget, Stop, #True)
+  EndIf
+  If (*Start)
+    *Start\i = Start
+  EndIf
+  If (*Stop)
+    *Stop\i = Stop
+  EndIf
+  ProcedureReturn (Stop - Start)
 EndProcedure
 
 Procedure.d Sci_GetScrollYPercent_(Gadget.i)
