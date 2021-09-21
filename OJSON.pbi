@@ -218,7 +218,7 @@ Declare.i _ParseOJSONNode(*JN.OJSONNODE, *Address, Length.i)
 Procedure.s _EscapeOJSONString(String.s)
   Protected Build.s = ""
   Protected *C.CHARACTER = @String
-  While (*C\c)
+  While (*C And *C\c)
     Select (*C\c)
       Case '"'
         Build + "\" + #DQUOTE$
