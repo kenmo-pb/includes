@@ -4,6 +4,7 @@
 ; | 2018-06-22 : Creation
 ; | 2018-09-05 : Match() now forces "^" and "$", Contains() does not
 ; | 2018-09-20 : Added ReExtract() to get first match
+; | 2020-11-24 : Added AppendList option to Extract/List
 
 ;   \s = whitespace characters (\S = NOT whitespace characters)
 ;   \w = word characters (\W = NOT word characters)
@@ -92,11 +93,15 @@ Procedure.s ReExtract(String.s, Pattern.s, Flags.i = #Null)
   ProcedureReturn (Result)
 EndProcedure
 
-Procedure.i ReExtractList(String.s, Pattern.s, List Match.s(), Flags.i = #Null)
+Procedure.i ReExtractList(String.s, Pattern.s, List Match.s(), Flags.i = #Null, AppendList.i = #False)
   Protected Result.i
   Dim AMatch.s(0)
   Result = ReExtractArray(String, Pattern, AMatch(), Flags)
-  ClearList(Match())
+  If (AppendList)
+    LastElement(Match())
+  Else
+    ClearList(Match())
+  EndIf
   If (Result > 0)
     Protected i.i
     For i = 0 To Result-1
@@ -110,8 +115,8 @@ EndProcedure
 ;- ReQuickResult
 Threaded NewList ReQuickResult.s()
 
-Procedure.i ReQuickExtract(String.s, Pattern.s, Flags.i = #Null)
-  ProcedureReturn (ReExtractList(String, Pattern, ReQuickResult(), Flags))
+Procedure.i ReQuickExtract(String.s, Pattern.s, Flags.i = #Null, AppendList.i = #False)
+  ProcedureReturn (ReExtractList(String, Pattern, ReQuickResult(), Flags, AppendList))
 EndProcedure
 
 
