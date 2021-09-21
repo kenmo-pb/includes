@@ -17,6 +17,9 @@
 ; | 2019.11.11 . Added PrepareFileRequesterEx() and related
 ; | 2019.11.19 . Improved Prepare by moving temp Requester to main thread
 ; | 2020-02-22 . Replaced dummy-requester Prepare method with path modification
+; | 2021-03-19 . Added NextSelectedFileNameEx(), RequesterExAddedExtension()
+; | 2021-08-20 . Ensure trailing PS$ if default path is a folder
+; | 2021-09-05 . Set ActivationPolicy for MacOS console mode requesters
 
 ;-
 CompilerIf (Not Defined(__RequesterEx_Included, #PB_Constant))
@@ -69,6 +72,16 @@ Macro __RequesterEx_PreparePathVar(PathVar)
 EndMacro
 CompilerEndIf
 
+CompilerIf ((#PB_Compiler_OS = #PB_OS_MacOS) And (#True))
+Procedure __RequesterEx_SetActivationPolicy()
+  CocoaMessage(0, CocoaMessage(0, 0, "NSApplication sharedApplication"), "setActivationPolicy:", 0) ; #NSApplicationActivationPolicyRegular
+EndProcedure
+CompilerElse
+Macro __RequesterEx_SetActivationPolicy()
+  ;
+EndMacro
+CompilerEndIf
+
 
 
 
@@ -78,6 +91,7 @@ CompilerEndIf
 Threaded __RequesterEx_SelectedPattern.i = 0
 Threaded __RequesterEx_FirstFile.s       = ""
 Threaded __RequesterEx_LastFolder.s      = ""
+Threaded __RequesterEx_AddedExtension.i  = #False
 
 
 
@@ -168,10 +182,21 @@ Macro MultiFileRequesterEx(Title = "Open", DefaultFile = "", Pattern = "", Patte
   OpenFileRequesterEx(Title, DefaultFile, Pattern, (PatternPosition), #True)
 EndMacro
 
+Macro NextSelectedFileNameEx()
+  NextSelectedFileName()
+EndMacro
+
+Macro RequesterExAddedExtension()
+  (__RequesterEx_AddedExtension)
+EndMacro
+
+
 ;-
 ;- Procedures (Public)
 
 Procedure.s PathRequesterEx(Title.s = "", InitialPath.s = "")
+  __RequesterEx_SetActivationPolicy()
+  
   If (Title = "")
     Title = "Path"
   EndIf
@@ -197,6 +222,8 @@ EndProcedure
 Procedure.s SaveFileRequesterEx(Title.s = "Save", DefaultFile.s = "", Pattern.s = "", PatternPosition.i = #PB_Default)
   Protected Result.s = ""
   
+  __RequesterEx_SetActivationPolicy()
+  
   If (DefaultFile = "")
     If (__RequesterEx_LastFolder = "")
       __RequesterEx_LastFolder = GetCurrentDirectory()
@@ -206,6 +233,11 @@ Procedure.s SaveFileRequesterEx(Title.s = "Save", DefaultFile.s = "", Pattern.s 
   CompilerIf (#PB_Compiler_OS = #PB_OS_Windows)
     ReplaceString(DefaultFile, "/", "\", #PB_String_InPlace)
   CompilerEndIf
+  If (FileSize(DefaultFile) = -2)
+    If (Right(DefaultFile, 1) <> __RequesterEx_PS())
+      DefaultFile + __RequesterEx_PS()
+    EndIf
+  EndIf
   Protected DefPath.s = GetPathPart(DefaultFile)
   Protected DefFile.s = GetFilePart(DefaultFile)
   DefaultFile = __RequesterEx_TopExisting(DefPath) + DefFile
@@ -223,6 +255,7 @@ Procedure.s SaveFileRequesterEx(Title.s = "Save", DefaultFile.s = "", Pattern.s 
   
   __RequesterEx_PreparePathVar(DefaultFile)
   
+  __RequesterEx_AddedExtension = #False
   Result = SaveFileRequester(Title, DefaultFile, PatternEx, PatternPosition)
   If (Result)
     __RequesterEx_LastFolder = GetPathPart(Result)
@@ -245,6 +278,7 @@ Procedure.s SaveFileRequesterEx(Title.s = "Save", DefaultFile.s = "", Pattern.s 
         Extension = StringField(SelectedFilter, 1, ";")
         Extension = StringField(Extension, 2, "*.")
         Result + "." + Extension
+        __RequesterEx_AddedExtension = #True
       EndIf
     EndIf
     
@@ -255,6 +289,8 @@ EndProcedure
 Procedure.s OpenFileRequesterEx(Title.s = "Open", DefaultFile.s = "", Pattern.s = "", PatternPosition.i = #PB_Default, MultiSelect.i = #False)
   Protected Result.s = ""
   
+  __RequesterEx_SetActivationPolicy()
+  
   If (DefaultFile = "")
     If (__RequesterEx_LastFolder = "")
       __RequesterEx_LastFolder = GetCurrentDirectory()
@@ -264,6 +300,11 @@ Procedure.s OpenFileRequesterEx(Title.s = "Open", DefaultFile.s = "", Pattern.s 
   CompilerIf (#PB_Compiler_OS = #PB_OS_Windows)
     ReplaceString(DefaultFile, "/", "\", #PB_String_InPlace)
   CompilerEndIf
+  If (FileSize(DefaultFile) = -2)
+    If (Right(DefaultFile, 1) <> __RequesterEx_PS())
+      DefaultFile + __RequesterEx_PS()
+    EndIf
+  EndIf
   Protected DefPath.s = GetPathPart(DefaultFile)
   Protected DefFile.s = GetFilePart(DefaultFile)
   DefaultFile = __RequesterEx_TopExisting(DefPath) + DefFile
@@ -281,6 +322,7 @@ Procedure.s OpenFileRequesterEx(Title.s = "Open", DefaultFile.s = "", Pattern.s 
   
   __RequesterEx_PreparePathVar(DefaultFile)
   
+  __RequesterEx_AddedExtension = #False
   Result = OpenFileRequester(Title, DefaultFile, PatternEx, PatternPosition, Bool(MultiSelect) * #PB_Requester_MultiSelection)
   __RequesterEx_FirstFile = Result
   If (Result)
