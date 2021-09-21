@@ -7,6 +7,8 @@
 ; | 2017.02.01 . Cleanup, made multiple-include safe
 ; | 2019.01.02 . Added hooks to remove native hotkeys from Windows WebGadget
 ; |        .03 . Merged in SetBrowserEmulation()
+; | 2020-09-03 . Add Ctrl+S to the hotkeys you can hook
+; | 2021-08-25 . Add Ctrl+A handling for Select All on Win XP StringGadgets
 
 
 ; Various simple improvements to PB gadgets (effects on Windows only)
@@ -44,6 +46,7 @@ Global *_WebGadgetHook = #Null
 Global _WebGadgetMenuWin.i =  0
 Global _WebGadgetMenuIDN.i = -1
 Global _WebGadgetMenuIDO.i = -1
+Global _WebGadgetMenuIDS.i = -1
 
 
 ;-
@@ -84,7 +87,12 @@ Procedure.i __WebGadgetHookCB(nCode.i, wParam.i, lParam.i)
               PostEvent(#PB_Event_Menu, _WebGadgetMenuWin, _WebGadgetMenuIDO)
             EndIf
             ProcedureReturn (#True) ; block
-          Case #VK_S, #VK_P, #VK_L
+          Case #VK_S
+            If ((_WebGadgetMenuIDS >= 0) And (FirstHit))
+              PostEvent(#PB_Event_Menu, _WebGadgetMenuWin, _WebGadgetMenuIDS)
+            EndIf
+            ProcedureReturn (#True) ; block
+          Case #VK_P, #VK_L
             ProcedureReturn (#True) ; block
           Default
             ;
@@ -131,6 +139,13 @@ Procedure.i __ImproveStringGadgetCB(hWnd.i, uMsg.i, wParam.i, lParam.i)
       EndIf
     EndIf
     ProcedureReturn (#True)
+  ElseIf ((uMsg = #WM_KEYDOWN) And (wParam = 'A') And ((lParam & $40000000) = 0) And (GetAsyncKeyState_(#VK_CONTROL) & $8000))
+    ; Windows XP Ctrl+A fix (PB 5.73 x86)
+    If ((OSVersion() = #PB_OS_Windows_XP) Or (#False))
+      PostMessage_(hWnd, #EM_SETSEL, 0, -1)
+    Else
+      ProcedureReturn (CallWindowProc_(GetWindowLongPtr_(hWnd, #GWL_USERDATA), hWnd, uMsg, wParam, lParam))
+    EndIf
   Else
     ProcedureReturn (CallWindowProc_(GetWindowLongPtr_(hWnd, #GWL_USERDATA), hWnd, uMsg, wParam, lParam))
   EndIf
@@ -224,10 +239,11 @@ Macro HookWebGadgets(State)
   EndIf
 EndMacro
 
-Macro SetWebGadgetHooks(Window = 0, CtrlN = -1, CtrlO = -1)
+Macro SetWebGadgetHooks(Window = 0, CtrlN = -1, CtrlO = -1, CtrlS = -1)
   _WebGadgetMenuWin = (Window)
   _WebGadgetMenuIDN = (CtrlN)
   _WebGadgetMenuIDO = (CtrlO)
+  _WebGadgetMenuIDS = (CtrlS)
 EndMacro
 
 
