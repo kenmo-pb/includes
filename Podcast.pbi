@@ -11,6 +11,7 @@
 ; | 2018-07-14 . Cleaned up demo
 ; | 2020-02-23 . Escape single and double quote characters
 ; | 2020-04-04 . Added Bytes property to items
+; | 2020-08-23 . Added SortPodcastByDates()
 
 ; TODO
 ; 
@@ -271,6 +272,16 @@ Procedure AddPodcastItem(*Pod.PODCAST, GUID.s, Title.s = "", UTCDate.i = 0, Desc
     *Pod\Item()\Image = Image
     *Pod\Item()\Link = Link
     *Pod\Item()\Bytes = Bytes
+  EndIf
+EndProcedure
+
+Procedure SortPodcastByDates(*Pod.PODCAST, OldestFirst.i = #False)
+  If (*Pod)
+    If (OldestFirst)
+      SortStructuredList(*Pod\Item(), #PB_Sort_Ascending, OffsetOf(PODCASTITEM\UTCDate), #PB_Integer)
+    Else
+      SortStructuredList(*Pod\Item(), #PB_Sort_Descending, OffsetOf(PODCASTITEM\UTCDate), #PB_Integer)
+    EndIf
   EndIf
 EndProcedure
 
