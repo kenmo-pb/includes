@@ -76,6 +76,8 @@ CompilerEndIf
 #PBWF_TitleBar    = #PB_Window_TitleBar
 #PBWF_WinCentered = #PB_Window_WindowCentered
 
+#LoremIpsum$ = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+
 ;-
 ;- Constants - Time
 
@@ -223,6 +225,14 @@ Macro RandomField(_String, _Delim)
   StringField(_String, Random(1 + CountString(_String, _Delim), 1), _Delim)
 EndMacro
 
+Macro RemoveSpaces(_String)
+  RemoveString(_String, " ")
+EndMacro
+
+Macro PrintI(_Integer)
+  PrintN(Str(_Integer))
+EndMacro
+
 Macro Push(PBList)
   PushListPosition(PBList)
 EndMacro
@@ -233,6 +243,10 @@ EndMacro
 
 Macro SelectRandomElement(PBList)
   SelectElement(PBList, Random(ListSize(PBList)-1))
+EndMacro
+
+Macro ListEmpty(PBList)
+  Bool(ListSize(PBList) = 0)
 EndMacro
 
 Macro AddString(_List, _String)
@@ -303,6 +317,10 @@ EndMacro
 
 Macro Info(Message)
   MessageRequester(#__Title_Info, Message, #OS_Icon_Information)
+EndMacro
+
+Macro InfoI(_Integer)
+  Info(Str(_Integer))
 EndMacro
 
 Macro Warn(Message)
@@ -566,6 +584,9 @@ EndMacro
 Macro GetModifiedDate(File)
   GetFileDate((File), #PB_Date_Modified)
 EndMacro
+Macro GetCreatedDate(File)
+  GetFileDate((File), #PB_Date_Created)
+EndMacro
 
 Macro DisableDriveErrors()
   OnWindows(SetErrorMode_(#SEM_FAILCRITICALERRORS))
@@ -686,6 +707,20 @@ CompilerEndIf
 ;-
 ;- Procedures - Data Types
 
+Procedure.i ParseBool(String.s, DefaultIfEmpty.i = #False)
+  Select (LCase(Trim(String)))
+    Case ""
+      ProcedureReturn (DefaultIfEmpty)
+    Case "1", "on", "yes", "y", "true", "enable", "enabled", "en"
+      ProcedureReturn (#True)
+  EndSelect
+  ProcedureReturn (#False)
+EndProcedure
+
+Procedure.i ReadPreferenceBool(Key.s, DefaultValue.i)
+  ProcedureReturn (ParseBool(ReadPreferenceString(Key, ""), DefaultValue))
+EndProcedure
+
 Procedure.s YesNo(Boolean.i)
   If (Boolean)
     ProcedureReturn ("Yes")
@@ -767,6 +802,27 @@ Procedure.i PercentChance(Percent.i)
   ProcedureReturn (Bool(Random(99) < (Percent)))
 EndProcedure
 
+Procedure.i ResolvePBAny(Number.i, HandleID.i)
+  If (Number = #PB_Any)
+    ProcedureReturn (HandleID)
+  EndIf
+  ProcedureReturn (Number)
+EndProcedure
+
+Procedure.f fmap(value.f, fromLow.f, fromHigh.f, toLow.f = 0.0, toHigh.f = 1.0)
+  ProcedureReturn (toLow + (toHigh - toLow) * (value - fromLow) / (fromHigh - fromLow))
+EndProcedure
+
+Procedure.f fconstrain(value.f, fromLow.f, fromHigh.f, toLow.f = 0.0, toHigh.f = 1.0)
+  If (value < fromLow)
+    value = fromLow
+  ElseIf (value > fromHigh)
+    value = fromHigh
+  EndIf
+  ProcedureReturn fmap(value, fromLow, fromHigh, toLow, toHigh)
+EndProcedure
+
+
 ;-
 ;- Procedures - Dialogs
 
@@ -819,6 +875,10 @@ EndProcedure
 
 Procedure.i LocalToUTC(LocalDate.i)
   ProcedureReturn (LocalDate + (DateUTC() - Date()))
+EndProcedure
+
+Procedure.i UTCToLocal(UTCDate.i)
+  ProcedureReturn (UTCDate + (Date() - DateUTC()))
 EndProcedure
 
 Procedure.s RFCDate(Date.i, IsLocal.i = #False)
@@ -1127,6 +1187,29 @@ Procedure.s HexFormat(Value.i, Width.i = #PB_Default, Prefix.s = "", Suffix.s = 
   ProcedureReturn (Result)
 EndProcedure
 
+Procedure.s Oct(Value.i, Prefix.s = "")
+  Protected Result.s
+  If (Value = 0)
+    Result = "0"
+  Else
+    While (Value <> 0)
+      Result = Str(Value & $7) + Result
+      CompilerIf (SizeOf(INTEGER) = 8)
+        Value = (Value >> 3) & $1FFFFFFFFFFFFFFF
+      CompilerElse
+        Value = (Value >> 3) & $1FFFFFFF
+      CompilerEndIf
+    Wend
+  EndIf
+  Result = Prefix + Result
+  ProcedureReturn (Result)
+EndProcedure
+
+Procedure.s FirstString(List StringList.s())
+  FirstElement(StringList())
+  ProcedureReturn (StringList())
+EndProcedure
+
 Procedure.s RandomString(List StringList.s())
   SelectRandomElement(StringList())
   ProcedureReturn (StringList())
@@ -1281,9 +1364,9 @@ Procedure.s Before(String.s, StringToFind.s, Occurrence.i = 1)
   ProcedureReturn (Result)
 EndProcedure
 
-Procedure.s After(String.s, StringToFind.s, Occurrence.i = 1)
+Procedure.s After(String.s, StringToFind.s, Occurrence.i = 1, Mode.i = 0)
   Protected Result.s
-  Protected i.i = FindOccurrence(String, StringToFind, Occurrence)
+  Protected i.i = FindOccurrence(String, StringToFind, Occurrence, Mode)
   If (i)
     Result = Mid(String, i + Len(StringToFind))
   EndIf
@@ -1474,6 +1557,30 @@ Procedure.i IsDirectoryEmpty(Directory.s)
     FinishDirectory(Dir)
   EndIf
   
+  ProcedureReturn (Result)
+EndProcedure
+
+Procedure.i DeleteIfExists(File.s, Force.i = #False)
+  Protected Result.i ; 1 = Deleted, 0 = Failed, -1 = Does Not Exist
+  If (FileExists(File))
+    Result = Bool(DeleteFile(File, Bool(Force) * #PB_FileSystem_Force))
+  Else
+    Result = -1
+  EndIf
+  ProcedureReturn (Result)
+EndProcedure
+
+Procedure.i DeleteIfEmpty(Directory.s)
+  Protected Result.i = 0 ; 1 = Deleted, 0 = Failed, -1 = Not Empty
+  If (PathExists(Directory))
+    If (IsDirectoryEmpty(Directory))
+      If (DeleteDirectory(Directory, ""))
+        Result = 1
+      EndIf
+    Else
+      Result = -1
+    EndIf
+  EndIf
   ProcedureReturn (Result)
 EndProcedure
 
@@ -1744,6 +1851,12 @@ Procedure ShowInExplorer(Path.s)
         RunProgram("open", "-R " + #DQUOTE$ + Path + #DQUOTE$, "")
       ElseIf (FileSize(Path) = -2)
         RunProgram("open", #DQUOTE$ + Path + #DQUOTE$, "")
+      EndIf
+    CompilerElse
+      If (FileSize(Path) >= 0)
+        RunProgram(GetPathPart(Path))
+      ElseIf (FileSize(Path) = -2)
+        RunProgram(Path)
       EndIf
     CompilerEndIf
   EndIf
