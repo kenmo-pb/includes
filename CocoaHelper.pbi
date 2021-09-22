@@ -12,6 +12,10 @@ CompilerIf (Not Defined(__CocoaHelper_Included, #PB_Constant))
 
 CompilerIf (#PB_Compiler_OS = #PB_OS_MacOS)
 
+CompilerIf (Not Defined(CocoaHelper_TrackThemeChanges, #PB_Constant))
+  #CocoaHelper_TrackThemeChanges = #False
+CompilerEndIf
+
 CompilerIf (#PB_Compiler_IsMainFile)
   EnableExplicit
 CompilerEndIf
@@ -157,7 +161,7 @@ EndProcedure
 ;-
 ;- Theme Change Detection
 
-CompilerIf (#True) ; Monitor OS color scheme changes
+CompilerIf (#CocoaHelper_TrackThemeChanges) ; Monitor OS color scheme changes
   
   Global *NSKeyValueChangeNewKey.Integer = dlsym_(#RTLD_DEFAULT, "NSKeyValueChangeNewKey")
   Global *NSKeyValueChangeOldKey.Integer = dlsym_(#RTLD_DEFAULT, "NSKeyValueChangeOldKey")
