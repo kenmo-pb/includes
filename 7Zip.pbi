@@ -1,4 +1,4 @@
-; +--------------+
+﻿; +--------------+
 ; | 7-Zip Helper |
 ; +--------------+
 ; | 2015.10.13 . Added Add7ZipFile and password/flags
