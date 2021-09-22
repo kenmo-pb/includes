@@ -1,4 +1,4 @@
-; +----------+
+﻿; +----------+
 ; | OS_Names |
 ; +----------+
 ; | 2014.12.02 . Creation (PureBasic 5.31)
@@ -7,6 +7,7 @@
 ; |        .28 . Added OS X 10.11 (El Capitan)
 ; | 2017.05.18 . Multiple-include safe
 ; | 2018.02.22 . Placeholders for OS X 10.12, 10.13
+; | 2021-09-21 . Placeholders for macOS 10.14, 10.15
 
 ;-
 CompilerIf (Not Defined(__OS_Names_Included, #PB_Constant))
@@ -163,6 +164,14 @@ DataSection
     CompilerIf (Defined(PB_OS_MacOSX_10_13, #PB_Constant))
       Data.i #PB_OS_MacOSX_10_13
       Data.i @"OS X 10.13"
+    CompilerEndIf
+    CompilerIf (Defined(PB_OS_MacOSX_10_14, #PB_Constant))
+      Data.i #PB_OS_MacOSX_10_14
+      Data.i @"macOS 10.14"
+    CompilerEndIf
+    CompilerIf (Defined(PB_OS_MacOSX_10_15, #PB_Constant))
+      Data.i #PB_OS_MacOSX_10_15
+      Data.i @"macOS 10.15"
     CompilerEndIf
   CompilerEndIf
   
