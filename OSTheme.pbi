@@ -200,7 +200,7 @@ CompilerEndIf
 
 CompilerIf (#PB_Compiler_OS = #PB_OS_MacOS)
 
-#NSKeyValueObservingOptionNew = 0
+#NSKeyValueObservingOptionNew = $01
 
 Global *_OSTheme_NewKey.INTEGER = dlsym_(#RTLD_DEFAULT, "NSKeyValueChangeNewKey")
 Global *_OSTheme_OldKey.INTEGER = dlsym_(#RTLD_DEFAULT, "NSKeyValueChangeOldKey")
