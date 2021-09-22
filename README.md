@@ -164,6 +164,13 @@ Convenient for handling different OS, filesystems, subsystems, ASCII vs. Unicode
 + Windows/Linux/Mac
 + ASCII/Unicode safe
 
+## [OSTheme.pbi](OSTheme.pbi)
+Helper functions to determine system colors for drawing. Also detect and react to OS theme changes (light or dark mode, accent colors, etc.) by callback, event, or polling.
+
++ Windows/Mac (Linux not yet implemented)
++ ASCII/Unicode safe
++ Demo included
+
 ## [OS_Names.pbi](OS_Names.pbi)
 Two functions, to retreive the (string) name of the user's OS and OS version. (Example: "Windows" and "Windows 7")
 + Windows/Linux/Mac
