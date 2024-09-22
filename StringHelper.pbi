@@ -14,6 +14,9 @@
 ; | 2018.06.09 . PeekCharacter() now accepts #PB_Default string mode,
 ; |                added ReadBOM and WriteBOM macros
 ; | 2018.07.09 . Added VS15 and VS16 constants (text/emoji variants)
+; | 2022-09-07 . Added FilterList() using simple callback (return 1 to Delete)
+; | 2023-11-18 . Update ChrU() for PB 6.00+ compatibility
+; | 2024-01-12 . Added FilterPrefix option to ReadFileToList() and ReadFileToMap()
 
 CompilerIf (Not Defined(__StringHelper_Included, #PB_Constant))
 #__StringHelper_Included = #True
@@ -206,7 +209,14 @@ Procedure.s ChrU(CodePoint.i)
       ProcedureReturn (Chr(CodePoint))
     Else
       CodePoint - #SurrogateOffset
-      ProcedureReturn (Chr(#SurrogateHighMin + (CodePoint >> 10)) + Chr(#SurrogateLowMin + (CodePoint & $03FF)))
+      CompilerIf (#True)
+        Protected Result.s = "  "
+        PokeU(@Result + 0, #SurrogateHighMin + (CodePoint >> 10))
+        PokeU(@Result + 2, #SurrogateLowMin + (CodePoint & $03FF))
+        ProcedureReturn (Result)
+      CompilerElse ; error in PB 6.03
+        ProcedureReturn (Chr(#SurrogateHighMin + (CodePoint >> 10)) + Chr(#SurrogateLowMin + (CodePoint & $03FF)))
+      CompilerEndIf
     EndIf
   CompilerElse
     If (CodePoint <= $FF)
@@ -569,8 +579,14 @@ Procedure.s ReadFileToString(FileName.s, Format.i = #PB_Default)
   ProcedureReturn (Text)
 EndProcedure
 
-Procedure.i ReadFileToList(File.s, List StringList.s(), Format.i = #PB_UTF8)
+Procedure.i ReadFileToList(File.s, List StringList.s(), Format.i = #StringIOMode, FilterPrefix.s = "")
   ClearList(StringList())
+  
+  FilterPrefix = LCase(Trim(FilterPrefix))
+  If ((Format = 0) Or (Format = #PB_Default))
+    Format = #StringIOMode
+  EndIf
+  
   Protected FN.i = ReadFile(#PB_Any, File, Format)
   If (FN)
     ReadStringFormat(FN)
@@ -578,8 +594,10 @@ Procedure.i ReadFileToList(File.s, List StringList.s(), Format.i = #PB_UTF8)
     While (Not Eof(FN))
       Line = Trim(ReadString(FN))
       If (Line)
-        AddElement(StringList())
-        StringList() = Line
+        If ((FilterPrefix = "") Or (LCase(Left(Line, Len(FilterPrefix))) <> FilterPrefix))
+          AddElement(StringList())
+          StringList() = Line
+        EndIf
       EndIf
     Wend
     CloseFile(FN)
@@ -587,8 +605,14 @@ Procedure.i ReadFileToList(File.s, List StringList.s(), Format.i = #PB_UTF8)
   ProcedureReturn (ListSize(StringList()))
 EndProcedure
 
-Procedure.i ReadFileToMap(File.s, Map StringMap.s(), Format.i = #PB_UTF8)
+Procedure.i ReadFileToMap(File.s, Map StringMap.s(), Format.i = #PB_UTF8, FilterPrefix.s = "")
   ClearMap(StringMap())
+  
+  FilterPrefix = LCase(Trim(FilterPrefix))
+  If ((Format = 0) Or (Format = #PB_Default))
+    Format = #PB_UTF8
+  EndIf
+  
   Protected FN.i = ReadFile(#PB_Any, File, Format)
   If (FN)
     ReadStringFormat(FN)
@@ -596,10 +620,16 @@ Procedure.i ReadFileToMap(File.s, Map StringMap.s(), Format.i = #PB_UTF8)
     While (Not Eof(FN))
       Line = Trim(ReadString(FN))
       If (Line)
-        Protected j.i = FindString(Line, "=")
-        If (j)
-          AddMapElement(StringMap(), Left(Line, j-1))
-          StringMap() = Mid(Line, j+1)
+        If ((FilterPrefix = "") Or (LCase(Left(Line, Len(FilterPrefix))) <> FilterPrefix))
+          Protected j.i = FindString(Line, "=")
+          If (j) ; format Name=Value
+            AddMapElement(StringMap(), Trim(Left(Line, j-1)))
+            StringMap() = Trim(Mid(Line, j+1))
+          Else
+            If (#True) ; format Name (no =)
+              AddMapElement(StringMap(), Line)
+            EndIf
+          EndIf
         EndIf
       EndIf
     Wend
@@ -617,6 +647,36 @@ Procedure.i CreateFileFromMap(File.s, Map StringMap.s())
     CloseFile(FN)
   EndIf
   ProcedureReturn (Bool(FN))
+EndProcedure
+
+Procedure.i CreateFileFromList(File.s, List StringList.s())
+  Protected FN.i = CreateFile(#PB_Any, File)
+  If (FN)
+    ForEach (StringList())
+      WriteStringN(FN, StringList())
+    Next
+    CloseFile(FN)
+  EndIf
+  ProcedureReturn (Bool(FN))
+EndProcedure
+
+Prototype.i _FilterListCallback(String.s, ExtraParam.i) ; return 0 to keep Element, 1 or non-zero to Delete Element
+
+Procedure.i FilterList(List StringList.s(), *Callback, ExtraParam.i = 0)
+  Protected Result.i = -1
+  If (*Callback)
+    Protected Callback._FilterListCallback = *Callback
+    ForEach StringList()
+      If (Callback(StringList(), ExtraParam))
+        DeleteElement(StringList())
+      EndIf
+    Next
+    CompilerIf (#True)
+      FirstElement(StringList())
+    CompilerEndIf
+    Result = ListSize(StringList())
+  EndIf
+  ProcedureReturn (Result)
 EndProcedure
 
 

@@ -8,6 +8,7 @@
 ; |     .07.03 . Cleaned up OS macros, Win/Mac Elses, character constants
 ; | 2016.04.08 . Added OnWindows/OnLinux/OnMac single-statement macros
 ; | 2017.02.02 . Made multiple-include safe
+; | 2024.09.20 . Added Backend info for PB 6.00+ (C vs ASM)
 
 
 CompilerIf (Not Defined(__OS_Included, #PB_Constant))
@@ -83,7 +84,7 @@ CompilerIf (#PB_Compiler_OS = #PB_OS_MacOS)
     _Statement
   EndMacro
   Macro LaunchFile(FileName)
-    RunProgram("open", FileName, GetPathPart(FileName))
+    RunProgram("open", Quote(FileName), GetPathPart(FileName))
   EndMacro
   Macro EditTextFile(FileName)
     RunProgram("open", "-e " + Quote(FileName), GetPathPart(FileName))
@@ -262,6 +263,34 @@ CompilerElse
 CompilerEndIf
 
 ;-
+;- Backend Macros
+
+CompilerIf (#PB_Compiler_Version < 600)
+  #PB_Backend_Asm = 0
+  #PB_Backend_C   = 1
+  #PB_Compiler_Backend = #PB_Backend_Asm
+CompilerEndIf
+CompilerIf (#PB_Compiler_Backend = #PB_Backend_C)
+  #IsCBackend   = #True
+  #IsAsmBackend = #False
+  Macro OnCBackend(_Statement)
+    _Statement
+  EndMacro
+  Macro OnAsmBackend(_Statement)
+    ;
+  EndMacro
+CompilerElse
+  #IsCBackend   = #False
+  #IsAsmBackend = #True
+  Macro OnCBackend(_Statement)
+    ;
+  EndMacro
+  Macro OnAsmBackend(_Statement)
+    _Statement
+  EndMacro
+CompilerEndIf
+
+;-
 ;- CPU Macros
 
 CompilerIf (SizeOf(INTEGER) = 8)
@@ -290,3 +319,4 @@ CompilerEndIf
 CompilerEndIf
 
 ;-
+

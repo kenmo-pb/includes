@@ -8,6 +8,7 @@
 ; | 2017.05.18 . Multiple-include safe
 ; | 2018.02.22 . Placeholders for OS X 10.12, 10.13
 ; | 2021-09-21 . Placeholders for macOS 10.14, 10.15
+; | 2024-09-19 . Update to PB 6.12 (Windows 11, macOS 15)
 
 ;-
 CompilerIf (Not Defined(__OS_Names_Included, #PB_Constant))
@@ -17,26 +18,52 @@ CompilerIf (Not Defined(__OS_Names_Included, #PB_Constant))
 ;- Constants (Public)
 
 ; MacOSX version aliases
-#PB_OS_MacOSX_Leopard      = #PB_OS_MacOSX_10_5
-#PB_OS_MacOSX_SnowLeopard  = #PB_OS_MacOSX_10_6
-#PB_OS_MacOSX_Lion         = #PB_OS_MacOSX_10_7
-#PB_OS_MacOSX_MountainLion = #PB_OS_MacOSX_10_8
-CompilerIf (Defined(PB_OS_MacOSX_10_9, #PB_Constant))
-  #PB_OS_MacOSX_Mavericks = #PB_OS_MacOSX_10_9
-CompilerEndIf
+;#PB_OS_MacOSX_Cheetah      = #PB_OS_MacOSX_10_0
+;#PB_OS_MacOSX_Puma         = #PB_OS_MacOSX_10_1
+;#PB_OS_MacOSX_Jaguar       = #PB_OS_MacOSX_10_2
+;#PB_OS_MacOSX_Panther      = #PB_OS_MacOSX_10_3
+;#PB_OS_MacOSX_Tiger        = #PB_OS_MacOSX_10_4
+;#PB_OS_MacOSX_Leopard      = #PB_OS_MacOSX_10_5
+;#PB_OS_MacOSX_SnowLeopard  = #PB_OS_MacOSX_10_6
+;#PB_OS_MacOSX_Lion         = #PB_OS_MacOSX_10_7
+;#PB_OS_MacOSX_MountainLion = #PB_OS_MacOSX_10_8
+;CompilerIf (Defined(PB_OS_MacOSX_10_9, #PB_Constant))
+;  #PB_OS_MacOSX_Mavericks = #PB_OS_MacOSX_10_9
+;CompilerEndIf
 CompilerIf (Defined(PB_OS_MacOSX_10_10, #PB_Constant))
   #PB_OS_MacOSX_Yosemite = #PB_OS_MacOSX_10_10
 CompilerEndIf
 CompilerIf (Defined(PB_OS_MacOSX_10_11, #PB_Constant))
   #PB_OS_MacOSX_ElCapitan = #PB_OS_MacOSX_10_11
 CompilerEndIf
+CompilerIf (Defined(PB_OS_MacOSX_10_12, #PB_Constant))
+  #PB_OS_MacOSX_Sierra = #PB_OS_MacOSX_10_12
+CompilerEndIf
+CompilerIf (Defined(PB_OS_MacOSX_10_13, #PB_Constant))
+  #PB_OS_MacOSX_HighSierra = #PB_OS_MacOSX_10_13
+CompilerEndIf
+CompilerIf (Defined(PB_OS_MacOSX_10_14, #PB_Constant))
+  #PB_OS_MacOSX_Mojave = #PB_OS_MacOSX_10_14
+CompilerEndIf
+CompilerIf (Defined(PB_OS_MacOSX_10_15, #PB_Constant))
+  #PB_OS_MacOSX_Catalina = #PB_OS_MacOSX_10_15
+CompilerEndIf
+CompilerIf (Defined(PB_OS_MacOSX_11, #PB_Constant))
+  #PB_OS_MacOSX_BigSur = #PB_OS_MacOSX_11
+CompilerEndIf
+CompilerIf (Defined(PB_OS_MacOSX_12, #PB_Constant))
+  #PB_OS_MacOSX_Monterey = #PB_OS_MacOSX_12
+CompilerEndIf
+CompilerIf (Defined(PB_OS_MacOSX_13, #PB_Constant))
+  #PB_OS_MacOSX_Ventura = #PB_OS_MacOSX_13
+CompilerEndIf
+CompilerIf (Defined(PB_OS_MacOSX_14, #PB_Constant))
+  #PB_OS_MacOSX_Sonoma = #PB_OS_MacOSX_14
+CompilerEndIf
+CompilerIf (Defined(PB_OS_MacOSX_15, #PB_Constant))
+  #PB_OS_MacOSX_Sequoia = #PB_OS_MacOSX_15
+CompilerEndIf
 
-; Older MacOSX version aliases - uncomment if desired
-;#PB_OS_MacOSX_Cheetah      = #PB_OS_MacOSX_10_0
-;#PB_OS_MacOSX_Puma         = #PB_OS_MacOSX_10_1
-;#PB_OS_MacOSX_Jaguar       = #PB_OS_MacOSX_10_2
-;#PB_OS_MacOSX_Panther      = #PB_OS_MacOSX_10_3
-;#PB_OS_MacOSX_Tiger        = #PB_OS_MacOSX_10_4
 
 
 
@@ -123,24 +150,29 @@ DataSection
       Data.i #PB_OS_Windows_10
       Data.i @"Windows 10"
     CompilerEndIf
+    CompilerIf (Defined(PB_OS_Windows_11, #PB_Constant))
+      Data.i #PB_OS_Windows_11
+      Data.i @"Windows 11"
+    CompilerEndIf
+    OSVersion()
   CompilerEndIf
   
   ;- - Mac
   CompilerIf (#PB_Compiler_OS = #PB_OS_MacOS)
     Data.i #PB_OS_MacOSX_10_0
-    Data.i @"OS X 10.0"
+    Data.i @"Mac OS X 10.0"
     Data.i #PB_OS_MacOSX_10_1
-    Data.i @"OS X 10.1"
+    Data.i @"Mac OS X 10.1"
     Data.i #PB_OS_MacOSX_10_2
-    Data.i @"OS X 10.2"
+    Data.i @"Mac OS X 10.2"
     Data.i #PB_OS_MacOSX_10_3
-    Data.i @"OS X 10.3"
+    Data.i @"Mac OS X 10.3"
     Data.i #PB_OS_MacOSX_10_4
-    Data.i @"OS X 10.4"
+    Data.i @"Mac OS X 10.4"
     Data.i #PB_OS_MacOSX_10_5
-    Data.i @"OS X 10.5"
+    Data.i @"Mac OS X 10.5"
     Data.i #PB_OS_MacOSX_10_6
-    Data.i @"OS X 10.6"
+    Data.i @"Mac OS X 10.6"
     Data.i #PB_OS_MacOSX_10_7
     Data.i @"OS X 10.7"
     Data.i #PB_OS_MacOSX_10_8
@@ -159,11 +191,11 @@ DataSection
     CompilerEndIf
     CompilerIf (Defined(PB_OS_MacOSX_10_12, #PB_Constant))
       Data.i #PB_OS_MacOSX_10_12
-      Data.i @"OS X 10.12"
+      Data.i @"macOS 10.12"
     CompilerEndIf
     CompilerIf (Defined(PB_OS_MacOSX_10_13, #PB_Constant))
       Data.i #PB_OS_MacOSX_10_13
-      Data.i @"OS X 10.13"
+      Data.i @"macOS 10.13"
     CompilerEndIf
     CompilerIf (Defined(PB_OS_MacOSX_10_14, #PB_Constant))
       Data.i #PB_OS_MacOSX_10_14
@@ -172,6 +204,26 @@ DataSection
     CompilerIf (Defined(PB_OS_MacOSX_10_15, #PB_Constant))
       Data.i #PB_OS_MacOSX_10_15
       Data.i @"macOS 10.15"
+    CompilerEndIf
+    CompilerIf (Defined(PB_OS_MacOSX_11, #PB_Constant))
+      Data.i #PB_OS_MacOSX_11
+      Data.i @"macOS 11"
+    CompilerEndIf
+    CompilerIf (Defined(PB_OS_MacOSX_12, #PB_Constant))
+      Data.i #PB_OS_MacOSX_12
+      Data.i @"macOS 12"
+    CompilerEndIf
+    CompilerIf (Defined(PB_OS_MacOSX_13, #PB_Constant))
+      Data.i #PB_OS_MacOSX_13
+      Data.i @"macOS 13"
+    CompilerEndIf
+    CompilerIf (Defined(PB_OS_MacOSX_14, #PB_Constant))
+      Data.i #PB_OS_MacOSX_14
+      Data.i @"macOS 14"
+    CompilerEndIf
+    CompilerIf (Defined(PB_OS_MacOSX_15, #PB_Constant))
+      Data.i #PB_OS_MacOSX_15
+      Data.i @"macOS 15"
     CompilerEndIf
   CompilerEndIf
   
@@ -202,3 +254,4 @@ CompilerEndIf
 
 CompilerEndIf
 ;-
+

@@ -292,12 +292,18 @@ CompilerIf (#PB_Compiler_IsMainFile)
 
 OpenWindow(0, 0, 0, 240, 40, "ImproveStringGadget()", #PB_Window_ScreenCentered|#PB_Window_SystemMenu)
 StringGadget(0, 10, 10, 220, 20, "This is a test")
+CompilerIf (Defined(PB_Gadget_RequiredSize, #PB_Constant))
+  ResizeWindow(0, #PB_Ignore, #PB_Ignore, 2*10 + GadgetWidth(0), 2*10 + GadgetHeight(0, #PB_Gadget_RequiredSize))
+CompilerEndIf
 ImproveStringGadget(0)
 SetActiveGadget(0)
-SendMessage_(GadgetID(0), #EM_SETSEL, Len(GetGadgetText(0)), Len(GetGadgetText(0)))
+CompilerIf (#PB_Compiler_OS = #PB_OS_Windows)
+  SendMessage_(GadgetID(0), #EM_SETSEL, Len(GetGadgetText(0)), Len(GetGadgetText(0)))
+CompilerEndIf
 Repeat : Until WaitWindowEvent() = #PB_Event_CloseWindow
 
 CompilerEndIf
 
 CompilerEndIf
 ;-
+

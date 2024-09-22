@@ -44,8 +44,13 @@ XIncludeFile #PB_Compiler_FilePath + "os.pbi"
 #NBSP  = $A0 ; 160
 #NBSP$ = Chr(#NBSP)
 
+#ZWJ  = $200D
+#ZWJ$ = Chr(#ZWJ)
+
 #MidDot  = $B7 ; 183
 #MidDot$ = Chr(#MidDot)
+
+#TWOPI = 2.0 * #PI
 
 ; 2017-08-29
 #ImproveUserAgent = "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36"
@@ -249,6 +254,10 @@ Macro ListEmpty(PBList)
   Bool(ListSize(PBList) = 0)
 EndMacro
 
+Macro IsFirstElement(PBList)
+  Bool(ListIndex(PBList) = 0)
+EndMacro
+
 Macro AddString(_List, _String)
   AddElement(_List) : _List = _String
 EndMacro
@@ -261,6 +270,7 @@ EndMacro
 ;- Macros - Time
 
 
+CompilerIf (#PB_Compiler_Version < 610)
 CompilerIf (Not Defined(time, #PB_Procedure))
   ImportC ""
     time(*seconds.INTEGER = #Null)
@@ -270,6 +280,7 @@ CompilerEndIf
 Macro DateUTC()
   time()
 EndMacro
+CompilerEndIf
 
 Macro Now()
   Date()
@@ -339,9 +350,11 @@ Macro PasswordRequester(Title, Message, DefaultString = "", Flags = #Null)
   InputRequester(Title, Message, DefaultString, (Flags)|#PB_InputRequester_Password)
 EndMacro
 
-Macro IsVKPressed(_VK)
-  (Bool(GetAsyncKeyState_(_VK) & $8000))
-EndMacro
+CompilerIf (#PB_Compiler_OS = #PB_OS_Windows)
+  Macro IsVKPressed(_VK)
+    (Bool(GetAsyncKeyState_(_VK) & $8000))
+  EndMacro
+CompilerEndIf
 
 ;-
 ;- Macros - Compiler Info
@@ -372,6 +385,16 @@ EndMacro
 
 ;-
 ;- Macros - Debugger
+
+CompilerIf (#PB_Compiler_Debugger)
+  Macro DebugEnd
+    End
+  EndMacro
+CompilerElse
+  Macro DebugEnd
+    ;
+  EndMacro
+CompilerEndIf
 
 Macro DebugProc()
   Debug #PB_Compiler_Procedure + "()"
@@ -439,16 +462,25 @@ Macro RemoveTabShortcuts(_Window)
 EndMacro
 
 CompilerIf (Defined(OS_Shortcut_TabNext, #PB_Constant))
-Macro AddTabShortcuts(_Window)
-  DisableDebugger
-  AddKeyboardShortcut((_Window), #PB_Shortcut_Tab, #OS_Shortcut_TabNext)
-  AddKeyboardShortcut((_Window), #PB_Shortcut_Tab | #PB_Shortcut_Shift, #OS_Shortcut_TabPrevious)
-  EnableDebugger
-EndMacro
+  Macro AddTabShortcuts(_Window)
+    DisableDebugger
+    AddKeyboardShortcut((_Window), #PB_Shortcut_Tab, #OS_Shortcut_TabNext)
+    AddKeyboardShortcut((_Window), #PB_Shortcut_Tab | #PB_Shortcut_Shift, #OS_Shortcut_TabPrevious)
+    EnableDebugger
+  EndMacro
 CompilerElse
-Macro AddTabShortcuts(_Window)
-  ;
-EndMacro
+  Macro AddTabShortcuts(_Window)
+    ;
+  EndMacro
+CompilerEndIf
+
+CompilerIf (#PB_Compiler_Version >= 610)
+  Procedure.i _InitScintilla()
+    ProcedureReturn (#True)
+  EndProcedure
+  Macro InitScintilla(_Library = "")
+    _InitScintilla()
+  EndMacro
 CompilerEndIf
 
 
@@ -567,6 +599,9 @@ CompilerIf (PBGTE(560))
 Macro GetDesktopDirectory()
   GetUserDirectory(#PB_Directory_Desktop)
 EndMacro
+Macro GetPicturesDirectory()
+  GetUserDirectory(#PB_Directory_Pictures)
+EndMacro
 CompilerEndIf
 
 Macro GetProgramPath()
@@ -650,6 +685,14 @@ Macro Opaque(RGB)
   ((RGB) | $FF000000)
 EndMacro
 
+Macro Transparent(RGB)
+  ((RGB) & $00FFFFFF)
+EndMacro
+
+Macro RemoveAlpha(RGBA)
+  Transparent(RGBA)
+EndMacro
+
 
 ;-
 ;- Macros - Images
@@ -719,6 +762,10 @@ EndProcedure
 
 Procedure.i ReadPreferenceBool(Key.s, DefaultValue.i)
   ProcedureReturn (ParseBool(ReadPreferenceString(Key, ""), DefaultValue))
+EndProcedure
+
+Procedure WritePreferenceBool(Key.s, Value.i)
+  WritePreferenceInteger(Key, Bool(Value))
 EndProcedure
 
 Procedure.s YesNo(Boolean.i)
@@ -1277,6 +1324,10 @@ Procedure.s Unquote(String.s)
     If (Right(String, 1) = #DQ$)
       String = Mid(String, 2, Len(String) - 2)
     EndIf
+  ElseIf (Left(String, 1) = #SQ$)
+    If (Right(String, 1) = #SQ$)
+      String = Mid(String, 2, Len(String) - 2)
+    EndIf
   EndIf
   ProcedureReturn (String)
 EndProcedure
@@ -1440,7 +1491,7 @@ Procedure.i IsAbsolutePath(Path.s)
   CompilerIf (#PB_Compiler_OS = #PB_OS_Windows)
     ProcedureReturn (Bool((Left(Path, 2) = "\\") Or (Mid(Path, 2, 1) = ":")))
   CompilerElse
-    ProcedureReturn (Bool(Left(Path, 1) = "/"))
+    ProcedureReturn (Bool((Left(Path, 1) = "/") Or (Left(Path, 1) = "~")))
   CompilerEndIf
 EndProcedure
 
@@ -1846,6 +1897,12 @@ Procedure ShowInExplorer(Path.s)
       ElseIf (FileSize(Path) = -2)
         RunProgram(Path)
       EndIf
+    CompilerElseIf (#PB_Compiler_OS = #PB_OS_Linux)
+      If (FileSize(Path) >= 0)
+        RunProgram("open", #DQUOTE$ + GetPathPart(Path) + #DQUOTE$, "")
+      ElseIf (FileSize(Path) = -2)
+        RunProgram("open", #DQUOTE$ + Path + #DQUOTE$, "")
+      EndIf
     CompilerElseIf (#PB_Compiler_OS = #PB_OS_MacOS)
       If (FileSize(Path) >= 0)
         RunProgram("open", "-R " + #DQUOTE$ + Path + #DQUOTE$, "")
@@ -2225,6 +2282,15 @@ EndProcedure
 ;-
 ;- Procedures - Network
 
+CompilerIf (#PB_Compiler_Version >= 600)
+  Procedure.i _InitNetwork()
+    ProcedureReturn (#True)
+  EndProcedure
+  Macro InitNetwork()
+    _InitNetwork()
+  EndMacro
+CompilerEndIf
+
 CompilerIf (Not Defined(LaunchURL, #PB_Procedure))
 Procedure LaunchURL(URL.s, NoPrefix.i = #False)
   If (URL)
@@ -2236,6 +2302,8 @@ Procedure LaunchURL(URL.s, NoPrefix.i = #False)
     CompilerSelect (#OS)
       CompilerCase (#PB_OS_Windows)
         ShellExecute_(#Null, @"open", @URL, #Null, #Null, #SW_SHOWNORMAL)
+      CompilerCase (#PB_OS_Linux)
+        RunProgram("open", URL, "")
       CompilerCase (#PB_OS_MacOS)
         RunProgram("open", URL, "")
       CompilerDefault
@@ -2327,6 +2395,27 @@ Procedure.i InitNetworkVerify(Seconds.i = 3*60)
   ProcedureReturn (Result)
 EndProcedure
 
+CompilerIf (Not Defined(GetHTTPHeader, #PB_Function))
+  Procedure.s GetHTTPHeader(URL.s, Flags.i = 0, UserAgent.s = "")
+    Protected Result.s = ""
+    CompilerIf (Defined(HTTPRequest, #PB_Function) And Defined(PB_HTTP_HeadersOnly, #PB_Constant))
+      If (URL)
+        If (UserAgent = "")
+          UserAgent = "Mozilla/5.0 Gecko/41.0 Firefox/41.0"
+        EndIf
+        NewMap Headers.s()
+        Headers("User-Agent") = UserAgent
+        Protected *Request = HTTPRequest(#PB_HTTP_Get, URL, "", Flags | #PB_HTTP_HeadersOnly, Headers())
+        If (*Request)
+          Result = HTTPInfo(*Request, #PB_HTTP_Headers)
+          FinishHTTP(*Request)
+        EndIf
+      EndIf
+    CompilerEndIf
+    ProcedureReturn (Result)
+  EndProcedure
+CompilerEndIf
+
 Procedure.i HTTPFileSize(URL.s, UserAgent.s = "")
   Protected Result.i = -1
   If (URL)
@@ -2355,3 +2444,4 @@ EndProcedure
 
 CompilerEndIf
 ;-
+

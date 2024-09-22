@@ -10,6 +10,7 @@
 ; |        .30 . Added ResetScanEntry, fixed ".." folder ignore
 ; | 2017.05.20 . Cleanup, added warning if RegexSupport is missing
 ; | 2020-06-19 . Don't warn about RegEx being disabled if not trying to use it!
+; | 2021-11-04 . Added ScanFolderToList()
 
 
 CompilerIf (Not Defined(__ScanFolder_Included, #PB_Constant))
@@ -413,6 +414,19 @@ Procedure.s ScanEntryPath(*ScanFolder._SCANFOLDER = #PB_Default)
     If (ListIndex(*ScanFolder\Result()) >= 0)
       Result = *ScanFolder\Result()
     EndIf
+  EndIf
+  ProcedureReturn (Result)
+EndProcedure
+
+Procedure.i ScanFolderToList(Folder.s, List StringList.s(), Flags.i = #Null, Extensions.s = "", RecurseDepth.i = 0, RegexPattern.s = "")
+  Protected Result.i = ScanFolder(Folder, Flags, Extensions, RecurseDepth, RegexPattern)
+  ClearList(StringList())
+  If (Result)
+    While (NextScanEntry(Result))
+      AddElement(StringList())
+      StringList() = ScanEntryPath(Result)
+    Wend
+    FinishScan(Result)
   EndIf
   ProcedureReturn (Result)
 EndProcedure

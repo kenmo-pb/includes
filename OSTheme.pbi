@@ -315,7 +315,7 @@ CompilerEndIf
 ;- Procedures (Private)
 
 Procedure.i _OSTheme_IsColorDark(Color.i)
-  If (0.30 * Red(Color) + 0.59 * Green(Color) + 0.11 * Blue(Color) < 128)
+  If (0.30 * Red(Color) + 0.59 * Green(Color) + 0.11 * Blue(Color) < 144)
     ProcedureReturn (#True)
   EndIf
   ProcedureReturn (#False)
