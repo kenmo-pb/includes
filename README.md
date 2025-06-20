@@ -95,6 +95,12 @@ Reads EXIF metadata from image files (typically JPEG). Currently, it only reads 
 + Demo included
 + **[RotateImage.pbi](RotateImage.pbi) is also required** if you use `LoadImageEXIFRotated()`
 
+## [GZipHelper.pbi](GZipHelper.pbi)
+Many helper functions to compress any data (file, string, buffer, memory range) to GZip format (file, new buffer, or existing memory range), and uncompress back again (to file, string, new buffer, or existing memory range). Uses PB "CRC32" for checksums, and PB "Zip" for DEFLATE compression/decompression.
++ Windows/Linux/Mac
++ ASCII/Unicode safe
++ Demo included
+
 ## [Hg.mod.pbi](Hg.mod.pbi)
 This is a Module for interacting with Mercurial (`Hg`) SCM. Functionality includes creating and committing repos, examining changed files, generating a diff, examining the commit log.
 + Windows only (not tested on Linux/Mac)
