@@ -354,6 +354,10 @@ CompilerIf (#PB_Compiler_OS = #PB_OS_Windows)
   Macro IsVKPressed(_VK)
     (Bool(GetAsyncKeyState_(_VK) & $8000))
   EndMacro
+CompilerElse
+  Macro IsVKPressed(_VK)
+    (#False)
+  EndMacro
 CompilerEndIf
 
 ;-

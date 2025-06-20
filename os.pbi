@@ -96,12 +96,21 @@ CompilerElse
   Macro OnMac(_Statement)
     ;
   EndMacro
-  Macro LaunchFile(FileName)
-    RunProgram(FileName, "", GetPathPart(FileName))
-  EndMacro
-  Macro EditTextFile(FileName)
-    LaunchFile(FileName)
-  EndMacro
+  CompilerIf (#PB_Compiler_OS = #PB_OS_Linux)
+    Macro LaunchFile(FileName)
+      RunProgram("open", Quote(FileName), GetPathPart(FileName))
+    EndMacro
+    Macro EditTextFile(FileName)
+      LaunchFile(FileName)
+    EndMacro
+  CompilerElse
+    Macro LaunchFile(FileName)
+      RunProgram(FileName, "", GetPathPart(FileName))
+    EndMacro
+    Macro EditTextFile(FileName)
+      LaunchFile(FileName)
+    EndMacro
+  CompilerEndIf
 CompilerEndIf
 
 
