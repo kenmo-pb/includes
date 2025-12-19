@@ -12,6 +12,12 @@ This provides an interface to the basic archive functions of 7-Zip - creation, e
 + Demo included
 + **[7-Zip commandline version](http://www.7-zip.org/download.html) (7za.exe) is required**
 
+## [Barcode.pbi](Barcode.pbi)
+A library for generating bar codes in various formats (eg. Code 128 or Code 39), output to image or file or CanvasGadget etc.
++ Windows/Linux/Mac
++ ASCII/Unicode safe
++ Demo included
+
 ## [Base64Lib.pbi](Base64Lib.pbi)
 A set of encoder/decoder/helper functions to improve upon (or replace) PB's Base64 functions. Various conversions to/from strings, files, and memory buffers.
 + Windows/Linux/Mac
