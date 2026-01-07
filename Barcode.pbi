@@ -4,10 +4,13 @@
 ; | 2025-12-16 : Creation (PureBasic 6.21), currently just "Code 128" format
 ; | 2025-12-17 : Added 'Fast' variants of procedures, demo GUI
 ; | 2025-12-18 : Implemented Code39 with "Mod 43" and "Mod 10" options
+; | 2026-01-06 : Implemented Codabar format
+; | 2026-01-08 : Added MakeLibraryBarcodeString helper procedure
 
 ; CURRENTLY SUPPORTED BARCODE FORMATS
 ;   Code 128 (no character limit, as long as you provide enough output pixel width)
 ;   Code 39  (with optional "Mod 43" or "Mod 10" checksum)
+;   Codabar  (optional Mod 16 checksum, default Start/Stop symbols A/A)
 
 ; EASY OUTPUTS TO
 ;   2DDrawing
@@ -27,8 +30,11 @@
 ;   https://en.wikipedia.org/wiki/Code_39
 ;   https://www.bardecode.com/en1/code-39-barcode-specification/
 ;   https://www.onbarcode.com/code_39/code39-size-setting.html
+;   https://en.wikipedia.org/wiki/Codabar
 ;   https://www.onlinebarcodereader.com/
 ;   https://online-barcode-reader.inliteresearch.com/
+;   https://www.nhsl.dncr.nh.gov/librarians/nhais-help-desk/barcode-basics
+;   https://www.nhsl.dncr.nh.gov/sites/g/files/ehbemt726/files/inline-documents/mod10-check-digit-calculation.pdf
 
 ;-
 CompilerIf (Not Defined(_Barcode_Included, #PB_Constant))
@@ -44,9 +50,11 @@ CompilerEndIf
 CompilerIf (Not Defined(Barcode_Exclude_Code128, #PB_Constant))
   #Barcode_Exclude_Code128 = #False
 CompilerEndIf
-
 CompilerIf (Not Defined(Barcode_Exclude_Code39, #PB_Constant))
-  #Barcode_Exclude_Code39 = #False ; format not yet implemented
+  #Barcode_Exclude_Code39 = #False
+CompilerEndIf
+CompilerIf (Not Defined(Barcode_Exclude_Codabar, #PB_Constant))
+  #Barcode_Exclude_Codabar = #False
 CompilerEndIf
 
 ;-
@@ -60,6 +68,9 @@ Enumeration BarcodeFormats
     #Barcode_Code39
     #Barcode_Code39Mod43
     #Barcode_Code39Mod10
+  CompilerEndIf
+  CompilerIf (Not #Barcode_Exclude_Codabar)
+    #Barcode_Codabar
   CompilerEndIf
   ;
   #Barcode_NumFormats
@@ -115,12 +126,48 @@ EndEnumeration
 
 CompilerEndIf
 
+CompilerIf (Not #Barcode_Exclude_Codabar)
+
+Enumeration
+  #_Barcode_Codabar_0 = 0
+  ;
+  #_Barcode_Codabar_Minus  = 10
+  #_Barcode_Codabar_Dollar = 11
+  #_Barcode_Codabar_Colon  = 12
+  #_Barcode_Codabar_Slash  = 13
+  #_Barcode_Codabar_Period = 14
+  #_Barcode_Codabar_Plus   = 15
+  ;
+  #_Barcode_Codabar_A = 16
+  #_Barcode_Codabar_B = 17
+  #_Barcode_Codabar_C = 18
+  #_Barcode_Codabar_D = 19
+  ;
+  #_Barcode_Codabar_E        = #_Barcode_Codabar_D
+  #_Barcode_Codabar_N        = #_Barcode_Codabar_B
+  #_Barcode_Codabar_Asterisk = #_Barcode_Codabar_C
+  #_Barcode_Codabar_T        = #_Barcode_Codabar_A
+EndEnumeration
+
+#_Barcode_Codabar_WideToNarrowRatio     = 3
+#_Barcode_Codabar_IntercharacterWidth   = 1
+#_Barcode_Codabar_DefaultQuietZoneWidth = 11
+
+#_Barcode_Codabar_DefaultStartSymbol = #_Barcode_Codabar_A
+#_Barcode_Codabar_DefaultStopSymbol  = #_Barcode_Codabar_A
+
+CompilerEndIf
+
 
 
 
 
 ;-
 ;- Structures (Private)
+
+Structure _Barcode_U8Array
+  a.a[0]
+EndStructure
 
 Structure _Barcode_U16Array
   u.u[0]
@@ -152,6 +199,13 @@ CompilerIf (Not #Barcode_Exclude_Code39)
   BarcodeFormatName(#Barcode_Code39Mod43) = "Code 39 Mod 43"
   BarcodeFormatName(#Barcode_Code39Mod10) = "Code 39 Mod 10"
   Global _Barcode_Code39_QuietZoneWidth.i = #_Barcode_Code39_DefaultQuietZoneWidth
+CompilerEndIf
+CompilerIf (Not #Barcode_Exclude_Codabar)
+  BarcodeFormatName(#Barcode_Codabar) = "Codabar"
+  Global _Barcode_Codabar_QuietZoneWidth.i = #_Barcode_Codabar_DefaultQuietZoneWidth
+  Global _Barcode_Codabar_StartSymbol.i    = #_Barcode_Codabar_DefaultStartSymbol
+  Global _Barcode_Codabar_StopSymbol.i     = #_Barcode_Codabar_DefaultStopSymbol
+  Global _Barcode_Codabar_Mod16Checksum.i  = #False
 CompilerEndIf
 
 
@@ -527,6 +581,148 @@ EndProcedure
 
 CompilerEndIf
 
+
+;-
+
+;- - Codabar
+
+CompilerIf (Not #Barcode_Exclude_Codabar)
+
+Procedure.i _Barcode_Codabar_SymbolForChar(c.c)
+  Protected Result.i = -1
+  Select (c)
+    Case '0' To '9'
+      Result = (c - '0' + #_Barcode_Codabar_0)
+    Case '-'
+      Result = #_Barcode_Codabar_Minus
+    Case '$'
+      Result = #_Barcode_Codabar_Dollar
+    Case ':'
+      Result = #_Barcode_Codabar_Colon
+    Case '/'
+      Result = #_Barcode_Codabar_Slash
+    Case '.'
+      Result = #_Barcode_Codabar_Period
+    Case '+'
+      Result = #_Barcode_Codabar_Plus
+    Case 'A', 'a'
+      Result = #_Barcode_Codabar_A
+    Case 'B', 'b'
+      Result = #_Barcode_Codabar_B
+    Case 'C', 'c'
+      Result = #_Barcode_Codabar_C
+    Case 'D', 'd'
+      Result = #_Barcode_Codabar_D
+    Case 'E', 'e'
+      Result = #_Barcode_Codabar_E
+    Case 'N', 'n'
+      Result = #_Barcode_Codabar_N
+    Case '*'
+      Result = #_Barcode_Codabar_Asterisk
+    Case 'T', 't'
+      Result = #_Barcode_Codabar_T
+  EndSelect
+  ProcedureReturn (Result)
+EndProcedure
+
+Procedure.i _Barcode_Generate_Codabar(*Barcode.BarcodeStruct)
+  Protected Result.i = #False
+  Protected Error.i = #False
+  
+  ; Add Quiet Zone
+  Protected i.i
+  For i = 1 To _Barcode_Codabar_QuietZoneWidth
+    _Barcode_AddBit1D(*Barcode, #False)
+  Next i
+  
+  ; Map characters to symbols
+  Protected Checksum.i = 0
+  Protected Symbol.i
+  Protected *C.CHARACTER = @*Barcode\Text
+  While (*C\c)
+    Symbol = _Barcode_Codabar_SymbolForChar(*C\c)
+    If (Symbol >= 0)
+      _Barcode_AddSymbol(*Barcode, Symbol)
+      Checksum + Symbol
+    Else
+      Error = #True
+      Break
+    EndIf
+    *C + SizeOf(CHARACTER)
+  Wend
+  
+  ; Add Stop Symbol (if user didn't explicitly specify one)
+  If (Not Error)
+    LastElement(*Barcode\Symbol())
+    If (*Barcode\Symbol() < #_Barcode_Codabar_A)
+      _Barcode_AddSymbol(*Barcode, _Barcode_Codabar_StopSymbol)
+    EndIf
+  EndIf
+  
+  ; Add Checksum Symbol, if applicable
+  If (Not Error)
+    If (_Barcode_Codabar_Mod16Checksum)
+      PreviousElement(*Barcode\Symbol())
+      _Barcode_AddSymbol(*Barcode, (Checksum % 16))
+    EndIf
+  EndIf
+  
+  ; Insert Start Symbol (if user didn't explicitly specify one)
+  If (Not Error)
+    FirstElement(*Barcode\Symbol())
+    If (*Barcode\Symbol() < #_Barcode_Codabar_A)
+      InsertElement(*Barcode\Symbol())
+      *Barcode\Symbol() = _Barcode_Codabar_StartSymbol
+    EndIf
+  EndIf
+  
+  ; Expand Symbol list to Individual Bar/Bits
+  If (Not Error)
+    Protected *UA._Barcode_U8Array = ?_Barcode_Codabar_Patterns
+    Protected Pattern.a
+    ForEach (*Barcode\Symbol())
+      Pattern = *UA\a[*Barcode\Symbol()]
+      Protected IsBar.i = #True
+      For i = 6 To 0 Step -1
+        Protected IsWide.i = (Pattern >> i) & $01
+        If (IsWide)
+          Protected j.i
+          For j = 1 To #_Barcode_Codabar_WideToNarrowRatio
+            _Barcode_AddBit1D(*Barcode, IsBar)
+          Next j
+        Else
+          _Barcode_AddBit1D(*Barcode, IsBar)
+        EndIf
+        IsBar = (1 - IsBar)
+      Next i
+      For j = 1 To #_Barcode_Code39_IntercharacterWidth
+        _Barcode_AddBit1D(*Barcode, #False)
+      Next j
+    Next
+  EndIf
+  
+  ; Final Quiet Zone
+  If (Not Error)
+    For i = 1 To _Barcode_Codabar_QuietZoneWidth
+      _Barcode_AddBit1D(*Barcode, #False)
+    Next i
+  EndIf
+  
+  If (Error)
+    ClearList(*Barcode\Symbol())
+    ClearList(*Barcode\Bit1D())
+    Result = #False
+  Else
+    If (ListSize(*Barcode\Bit1D()) > 0)
+      Result = #True
+    EndIf
+  EndIf
+  
+  ProcedureReturn (Result)
+EndProcedure
+
+CompilerEndIf
+
 ;-
 
 Procedure.i _Barcode_Generate(*Barcode.BarcodeStruct)
@@ -554,6 +750,10 @@ Procedure.i _Barcode_Generate(*Barcode.BarcodeStruct)
     CompilerIf (Not #Barcode_Exclude_Code39)
     Case #Barcode_Code39, #Barcode_Code39Mod43, #Barcode_Code39Mod10
       Result = _Barcode_Generate_Code39(*Barcode)
+    CompilerEndIf
+    CompilerIf (Not #Barcode_Exclude_Codabar)
+    Case #Barcode_Codabar
+      Result = _Barcode_Generate_Codabar(*Barcode)
     CompilerEndIf
   EndSelect
   ProcedureReturn (Result)
@@ -601,6 +801,17 @@ Procedure.i _Barcode_Draw(*Barcode.BarcodeStruct, x.i, y.i, Width.i, Height.i, B
               EndIf
             EndIf
           CompilerEndIf
+          CompilerIf (Not #Barcode_Exclude_Codabar)
+            If (*Barcode\Format = #Barcode_Codabar)
+              dh = Height - 2 * (Scale * 10)
+              If (dh < 2 * (Scale * 10))
+                dh = Height - 1 * (Scale * 10)
+                If (dh < 1 * (Scale * 10))
+                  dh = Height
+                EndIf
+              EndIf
+            EndIf
+          CompilerEndIf
           
           Protected dx.i = (Width - TotalDrawWidth) / 2
           Protected dy.i = (Height - dh) / 2
@@ -628,6 +839,50 @@ EndProcedure
 
 ;-
 ;- Procedures (Public)
+
+CompilerIf (#True)
+Procedure.s MakeLibraryBarcodeString(IsMaterial.i, LibraryNumber.i, IDNumber.i)
+  Protected Result.s
+  
+  If (IsMaterial)
+    Result = "3" ; material
+  Else
+    Result = "2" ; patron
+  EndIf
+  Result + RSet(Str(LibraryNumber % 10000), 4, "0")
+  Result + RSet(Str(IDNumber  % 100000000), 8, "0")
+  
+  Protected Temp.i = 0
+  Temp + (PeekC(@Result +  0*SizeOf(CHARACTER)) - '0') * 1000000
+  Temp + (PeekC(@Result +  2*SizeOf(CHARACTER)) - '0') * 100000
+  Temp + (PeekC(@Result +  4*SizeOf(CHARACTER)) - '0') * 10000
+  Temp + (PeekC(@Result +  6*SizeOf(CHARACTER)) - '0') * 1000
+  Temp + (PeekC(@Result +  8*SizeOf(CHARACTER)) - '0') * 100
+  Temp + (PeekC(@Result + 10*SizeOf(CHARACTER)) - '0') * 10
+  Temp + (PeekC(@Result + 12*SizeOf(CHARACTER)) - '0') * 1
+  Temp * 2
+  
+  Protected Checksum.i = 0
+  While (Temp > 0)
+    Checksum + (Temp % 10)
+    Temp / 10
+  Wend
+  
+  Checksum + (PeekC(@Result +  1*SizeOf(CHARACTER)) - '0')
+  Checksum + (PeekC(@Result +  3*SizeOf(CHARACTER)) - '0')
+  Checksum + (PeekC(@Result +  5*SizeOf(CHARACTER)) - '0')
+  Checksum + (PeekC(@Result +  7*SizeOf(CHARACTER)) - '0')
+  Checksum + (PeekC(@Result +  9*SizeOf(CHARACTER)) - '0')
+  Checksum + (PeekC(@Result + 11*SizeOf(CHARACTER)) - '0')
+  
+  Checksum = (Checksum % 10) ; eg. 47 --> 7
+  Checksum = 10 - Checksum   ; eg.  7 --> 3
+  Checksum = (Checksum % 10) ; ensure 10 --> 0
+  Result + Str(Checksum)
+  
+  ProcedureReturn (Result)
+EndProcedure
+CompilerEndIf
 
 Procedure.i GetBarcodeFormat(*Barcode.BarcodeStruct)
   Protected Result.i = -1
@@ -970,6 +1225,31 @@ DataSection
   Data.u %010001010 ; '+'
   Data.u %000101010 ; '%'
   Data.u %010010100 ; '*' (Start/Stop Symbol)
+  CompilerEndIf
+  
+  ;- - Codabar
+  CompilerIf (Not #Barcode_Exclude_Codabar)
+  _Barcode_Codabar_Patterns:
+  Data.a %0000011 ; '0'
+  Data.a %0000110
+  Data.a %0001001
+  Data.a %1100000
+  Data.a %0010010
+  Data.a %1000010
+  Data.a %0100001
+  Data.a %0100100
+  Data.a %0110000
+  Data.a %1001000
+  Data.a %0001100 ; '-'
+  Data.a %0011000 ; '$'
+  Data.a %1000101 ; ':'
+  Data.a %1010001 ; '/'
+  Data.a %1010100 ; '.'
+  Data.a %0010101 ; '+'
+  Data.a %0011010 ; 'A'
+  Data.a %0101001 ; 'B'
+  Data.a %0001011 ; 'C'
+  Data.a %0001110 ; 'D'
   CompilerEndIf
   
 EndDataSection
