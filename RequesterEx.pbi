@@ -20,6 +20,7 @@
 ; | 2021-03-19 . Added NextSelectedFileNameEx(), RequesterExAddedExtension()
 ; | 2021-08-20 . Ensure trailing PS$ if default path is a folder
 ; | 2021-09-05 . Set ActivationPolicy for MacOS console mode requesters
+; | 2026-02-19 . Added Window ParentID support for PB 6.10+ requesters
 
 ;-
 CompilerIf (Not Defined(__RequesterEx_Included, #PB_Constant))
@@ -27,6 +28,12 @@ CompilerIf (Not Defined(__RequesterEx_Included, #PB_Constant))
 
 CompilerIf (#PB_Compiler_IsMainFile)
   EnableExplicit
+CompilerEndIf
+
+CompilerIf (#PB_Compiler_Version >= 610)
+  #__RequesterEx_ParentIDSupport = #True
+CompilerElse
+  #__RequesterEx_ParentIDSupport = #False
 CompilerEndIf
 
 
@@ -93,6 +100,9 @@ Threaded __RequesterEx_FirstFile.s       = ""
 Threaded __RequesterEx_LastFolder.s      = ""
 Threaded __RequesterEx_AddedExtension.i  = #False
 
+CompilerIf (#__RequesterEx_ParentIDSupport)
+  Global __RequesterEx_ParentID.i = #Null
+CompilerEndIf
 
 
 ;-
@@ -194,6 +204,13 @@ EndMacro
 ;-
 ;- Procedures (Public)
 
+Procedure.i SetRequesterExParentID(ParentID.i)
+  CompilerIf (#__RequesterEx_ParentIDSupport)
+    __RequesterEx_ParentID = ParentID
+  CompilerEndIf
+  ProcedureReturn (#__RequesterEx_ParentIDSupport)
+EndProcedure
+
 Procedure.s PathRequesterEx(Title.s = "", InitialPath.s = "")
   __RequesterEx_SetActivationPolicy()
   
@@ -212,7 +229,12 @@ Procedure.s PathRequesterEx(Title.s = "", InitialPath.s = "")
       CompilerEndIf
     EndIf
   CompilerEndIf
-  ProcedureReturn (PathRequester(Title, InitialPath))
+  
+  CompilerIf (#__RequesterEx_ParentIDSupport)
+    ProcedureReturn (PathRequester(Title, InitialPath, __RequesterEx_ParentID))
+  CompilerElse
+    ProcedureReturn (PathRequester(Title, InitialPath))
+  CompilerEndIf
 EndProcedure
 
 Procedure.i SelectedRequesterExPattern()
@@ -256,7 +278,11 @@ Procedure.s SaveFileRequesterEx(Title.s = "Save", DefaultFile.s = "", Pattern.s 
   __RequesterEx_PreparePathVar(DefaultFile)
   
   __RequesterEx_AddedExtension = #False
-  Result = SaveFileRequester(Title, DefaultFile, PatternEx, PatternPosition)
+  CompilerIf (#__RequesterEx_ParentIDSupport)
+    Result = SaveFileRequester(Title, DefaultFile, PatternEx, PatternPosition, __RequesterEx_ParentID)
+  CompilerElse
+    Result = SaveFileRequester(Title, DefaultFile, PatternEx, PatternPosition)
+  CompilerEndIf
   If (Result)
     __RequesterEx_LastFolder = GetPathPart(Result)
     CompilerIf (#PB_Compiler_OS = #PB_OS_MacOS)
@@ -323,7 +349,11 @@ Procedure.s OpenFileRequesterEx(Title.s = "Open", DefaultFile.s = "", Pattern.s 
   __RequesterEx_PreparePathVar(DefaultFile)
   
   __RequesterEx_AddedExtension = #False
-  Result = OpenFileRequester(Title, DefaultFile, PatternEx, PatternPosition, Bool(MultiSelect) * #PB_Requester_MultiSelection)
+  CompilerIf (#__RequesterEx_ParentIDSupport)
+    Result = OpenFileRequester(Title, DefaultFile, PatternEx, PatternPosition, Bool(MultiSelect) * #PB_Requester_MultiSelection, __RequesterEx_ParentID)
+  CompilerElse
+    Result = OpenFileRequester(Title, DefaultFile, PatternEx, PatternPosition, Bool(MultiSelect) * #PB_Requester_MultiSelection)
+  CompilerEndIf
   __RequesterEx_FirstFile = Result
   If (Result)
     __RequesterEx_LastFolder = GetPathPart(Result)
@@ -358,6 +388,11 @@ EndProcedure
 
 CompilerIf (#PB_Compiler_IsMainFile)
   DisableExplicit
+  
+  CompilerIf (#PB_Compiler_Version >= 610)
+    OpenWindow(0, 0, 0, 640, 480, #PB_Compiler_Filename, #PB_Window_ScreenCentered | #PB_Window_SystemMenu)
+    SetRequesterExParentID(WindowID(0))
+  CompilerEndIf
   
   ; All parameters optional
   Debug OpenFileRequesterEx()
