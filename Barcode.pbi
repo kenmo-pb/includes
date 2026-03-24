@@ -763,7 +763,7 @@ Procedure.i _Barcode_Draw(*Barcode.BarcodeStruct, x.i, y.i, Width.i, Height.i, B
   Protected Result.i = #False
   If (*Barcode And _Barcode_FormatValid(*Barcode\Format))
     If ((Width > 0) And (Height > 0))
-      If (#False)
+      If (#True)
         Box(x, y, Width, Height, BackgroundRGBA)
       EndIf
       
@@ -813,8 +813,8 @@ Procedure.i _Barcode_Draw(*Barcode.BarcodeStruct, x.i, y.i, Width.i, Height.i, B
             EndIf
           CompilerEndIf
           
-          Protected dx.i = (Width - TotalDrawWidth) / 2
-          Protected dy.i = (Height - dh) / 2
+          Protected dx.i = x + (Width - TotalDrawWidth) / 2
+          Protected dy.i = y + (Height - dh) / 2
           ForEach (*Barcode\Bit1D())
             If (*Barcode\Bit1D())
               Box(dx, dy, dw, dh, BarRGBA)
