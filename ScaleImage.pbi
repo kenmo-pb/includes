@@ -511,8 +511,8 @@ UseJPEGImageEncoder()
 UsePNGImageDecoder()
 UsePNGImageEncoder()
 
-InFile.s = #PB_Compiler_Home + "Examples/3D/Data/Water/Foam.png"
-;InFile.s = #PB_Compiler_Home + "Examples/3D/Data/Textures/spheremap.png"
+InFile.s = #PB_Compiler_Home + "examples/3d/Data/Water/Foam.png"
+;InFile.s = #PB_Compiler_Home + "examples/3d/Data/Textures/spheremap.png"
 LoadImage(0, InFile)
 
 OpenWindow(0, 0, 0, ImageWidth(0), DefaultGadgetHeight() + ImageHeight(0), "ScaleImage",
