@@ -8,6 +8,7 @@
 ; | 2018.11.08 . Upload and Download now default to current FTP/Local dirs
 ; | 2018.11.09 . Added OpenFTPFromFile
 ; | 2020-06-19 . Remove Preferences calls (only use helper File functions)
+; | 2026-06-24 . Updated for SFTP, Active flag, compatibility (PB 6.40)
 
 ;-
 CompilerIf (Not Defined(__FTPHelper_Included, #PB_Constant))
@@ -18,8 +19,37 @@ CompilerIf (#PB_Compiler_IsMainFile)
 CompilerEndIf
 
 
+;-
+;- Constants (Public)
 
+#DefaultFTPPort  = 21
+#DefaultSFTPPort = 22
+
+;-
+;- Constants (Private)
+
+CompilerIf (#PB_Compiler_Version >= 630)
+  #_FTPFlagsSupport = #True
+CompilerElse
+  #_FTPFlagsSupport = #False
+CompilerEndIf
+
+CompilerIf (#PB_Compiler_Version >= 612)
+  #_SFTPSupport = #True
+CompilerElse
+  #_SFTPSupport = #False
+CompilerEndIf
+
+;-
 ;- Procedures (Private)
+
+CompilerIf (Not Defined(InitNetwork, #PB_Function))
+CompilerIf (Not Defined(InitNetwork, #PB_Procedure))
+Procedure.i InitNetwork()
+  ProcedureReturn (#True)
+EndProcedure
+CompilerEndIf
+CompilerEndIf
 
 Procedure.i _FTPHelper_FindGroup(FN.i, GroupName.s)
   Protected Result.i = #False
@@ -67,12 +97,23 @@ EndProcedure
 ;-
 ;- Procedures (Public)
 
+Procedure.i FTPPassiveBoolToFTPFlags(Passive.i)
+  CompilerIf (#_FTPFlagsSupport)
+    If (Passive)
+      ;Passive = #Null
+    Else
+      Passive = #PB_FTP_Active
+    EndIf
+  CompilerEndIf
+  ProcedureReturn (Passive)
+EndProcedure
+
 Procedure.i ChangeFTPDirectory(FTP.i, Directory.s, Create.i = #False)
   Protected Result.i = #False
   If (IsFTP(FTP))
     If (CheckFTPConnection(FTP))
       If (Directory)
-        ReplaceString(Directory, "\", "/", #PB_String_InPlace)
+        Directory = ReplaceString(Directory, "\", "/")
         Directory = RTrim(Directory, "/") + "/"
         Protected Current.s
         Current = RTrim(GetFTPDirectory(FTP), "/") + "/"
@@ -149,10 +190,23 @@ Procedure.i DownloadFTPFile(FTP.i, RemoteFile.s, LocalFile.s = "")
   ProcedureReturn (Result)
 EndProcedure
 
-Procedure.i QuickFTPUpload(File.s, Server.s, RemoteFile.s = "", User.s = "", Pass.s = "", Port.i = 21, Passive.i = #True)
+Procedure.i QuickFTPUpload(File.s, Server.s, RemoteFile.s = "", User.s = "", Pass.s = "", Port.i = #PB_Default, Passive.i = #True)
   Protected Result.i = #False
   If (File And (FileSize(File) >= 0) And Server)
     If (InitNetwork())
+      CompilerIf (Not #_SFTPSupport)
+        If (FindString(Server, "://"))
+          Server = StringField(Server, 2, "://")
+        EndIf
+      CompilerEndIf
+      If (Port = #PB_Default)
+        If (FindString(Server, "sftp://"))
+          Port = #DefaultSFTPPort
+        Else
+          Port = #DefaultFTPPort
+        EndIf
+      EndIf
+      Passive = FTPPassiveBoolToFTPFlags(Passive)
       Protected FTP.i = OpenFTP(#PB_Any, Server, User, Pass, Passive, Port)
       If (FTP)
         Result = UploadFTPFile(FTP, File, RemoteFile)
@@ -197,15 +251,29 @@ Procedure.i OpenFTPFromFile(FTP.i, File.s, Group.s = "")
       Protected User.s    = RemoveString(_FTPHelper_FindString(FN, "u"), RemoveChar)
       Protected Pass.s    = RemoveString(_FTPHelper_FindString(FN, "p"), RemoveChar)
       Protected Dir.s     = RemoveString(_FTPHelper_FindString(FN, "d"), RemoveChar)
-      Protected Port.i    = Val(_FTPHelper_FindString(FN, "port", "21"))
+      Protected Port.i    = Val(_FTPHelper_FindString(FN, "port", "0"))
       Protected Passive.i = Bool(Val(_FTPHelper_FindString(FN, "passive", "1")))
-      If (FindString(Server, "://"))
-        Server = StringField(Server, 2, "://")
+      
+      CompilerIf (Not #_SFTPSupport)
+        If (FindString(Server, "://"))
+          Server = StringField(Server, 2, "://")
+        EndIf
+      CompilerEndIf
+      If (Port <= 0)
+        If (FindString(Server, "sftp://"))
+          Port = #DefaultSFTPPort
+        Else
+          Port = #DefaultFTPPort
+        EndIf
       EndIf
+      
       Server = RTrim(Server, "/")
       If (Server And User And Pass And (Port > 0))
+        Passive = FTPPassiveBoolToFTPFlags(Passive)
         Result = OpenFTP(FTP, Server, User, Pass, Passive, Port)
-        PokeS(@Pass, Space(Len(Pass)))
+        If (#True)
+          PokeS(@Pass, Space(Len(Pass)))
+        EndIf
         If (Result)
           If (FTP = #PB_Any)
             FTP = Result
@@ -242,14 +310,13 @@ CompilerIf (#PB_Compiler_IsMainFile)
   
   ; ==========================================
   ; Fill these in to test!
-  Server.s   = ""
+  Server.s   = ""  ; prefix with "sftp://" for SFTP (PB 6.12+)
+  Port.i     =  21 ; 22 for SFTP
   User.s     = "myUser"
   Password.s = "myPassword"
   RemoteFile.s  = "/www/files/myFile.dat"
-  ; ==========================================
-  
   Passive.i  = #True
-  Port.i     =  21
+  ; ==========================================
   
   LocalFile.s   = GetTemporaryDirectory() + GetFilePart(RemoteFile)
   RemoteFile2.s = RemoteFile + ".new"
@@ -257,6 +324,7 @@ CompilerIf (#PB_Compiler_IsMainFile)
   If (Server)
     If InitNetwork()
       Debug "Connecting to " + Server + "..."
+      Passive = FTPPassiveBoolToFTPFlags(Passive)
       If OpenFTP(0, Server, User, Password, Passive, Port)
         
         Debug "OK" + #LF$ + "Downloading file..."
